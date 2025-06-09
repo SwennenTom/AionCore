@@ -6,7 +6,21 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Domain.Enums
 {
-    internal class TradeAction
+    public enum TradeAction
     {
+        Hold,
+        Buy,
+        Sell,
+        Short,
+        Cover,
+        AddToPosition,
+        ReducePosition,
+        CancelOrder,
+        LimitBuy,
+        LimitSell,
+        StopBuy,
+        StopSell,
+        TrailStop,
+        Liquidate
     }
 }

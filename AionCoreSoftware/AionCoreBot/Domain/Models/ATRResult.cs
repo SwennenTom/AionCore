@@ -6,7 +6,14 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Domain.Models
 {
-    internal class ATRResult
+    public class ATRResult
     {
+        public int Id { get; set; }
+        public string Symbol { get; set; }
+        public string Interval { get; set; }
+        public DateTime Timestamp { get; set; }
+        public int period { get; set; }
+        public decimal ATRvalue { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

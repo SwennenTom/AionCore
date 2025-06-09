@@ -6,7 +6,12 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Domain.Interfaces
 {
-    internal interface IAnalyzer
+    public interface IAnalyzer<TInput, TOutput>
     {
+        string Name { get; }
+
+        Task<TOutput> AnalyzeAsync(TInput input);
+
+        void ResetState();
     }
 }
