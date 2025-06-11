@@ -1,4 +1,6 @@
-﻿using AionCoreBot.Domain.Interfaces;
+﻿using AionCoreBot.Application.Interfaces;
+using AionCoreBot.Domain.Enums;
+using AionCoreBot.Domain.Interfaces;
 using AionCoreBot.Domain.Models;
 using System;
 using System.Collections.Generic;
@@ -8,49 +10,49 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Analyzers
 {
-    public class EMAAnalyzer:IAnalyzer<IEnumerable<Candle>, EMAResult>
+    public class EMAAnalyzer : IAnalyzer
     {
-        public string Name => "EMA";
+        private readonly IIndicatorService<EMAResult> _emaService;
 
-        public void ResetState()
+        public EMAAnalyzer(IIndicatorService<EMAResult> emaService)
         {
-            // Reset logica indien nodig
+            _emaService = emaService;
         }
 
-        public Task<EMAResult> AnalyzeAsync(IEnumerable<Candle> candles, int period)
+        public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval)
         {
-            if (candles == null || !candles.Any())
-                throw new ArgumentException("Geen candles aangeleverd voor EMA-berekening.");
-
-            var orderedCandles = candles.OrderBy(c => c.Timestamp).ToList();
-
-            if (orderedCandles.Count < period)
-                throw new ArgumentException($"Minstens {period} candles vereist voor EMA-berekening.");
-
-            decimal multiplier = 2m / (period + 1);
-            decimal? previousEMA = null;
-
-            for (int i = 0; i < orderedCandles.Count; i++)
+            var result = new SignalEvaluationResult
             {
-                var closePrice = orderedCandles[i].ClosePrice;
-                if (i == 0)
-                    previousEMA = closePrice; // init
-                else
-                    previousEMA = ((closePrice - previousEMA.Value) * multiplier) + previousEMA.Value;
-            }
-
-            var latestCandle = orderedCandles.Last();
-
-            var result = new EMAResult
-            {
-                Symbol = latestCandle.Symbol,
-                Interval = latestCandle.Interval,
-                Period = period,
-                Timestamp = latestCandle.CloseTime,
-                EMAValue = previousEMA ?? 0m
+                Symbol = symbol,
+                Interval = interval,
+                EvaluationTime = DateTime.UtcNow,
+                ProposedAction = TradeAction.Hold,
+                IndicatorValues = new(),
+                SignalDescriptions = new()
             };
 
-            return Task.FromResult(result);
+            var ema7 = await _emaService.GetLatestAsync(symbol, interval, 7);
+            var ema21 = await _emaService.GetLatestAsync(symbol, interval, 21);
+
+            if (ema7 != null && ema21 != null)
+            {
+                result.IndicatorValues["EMA7"] = ema7.Value;
+                result.IndicatorValues["EMA21"] = ema21.Value;
+
+                if (ema7.Value > ema21.Value)
+                {
+                    result.ProposedAction = TradeAction.Buy;
+                    result.SignalDescriptions.Add("EMA7 boven EMA21");
+                }
+                else if (ema7.Value < ema21.Value)
+                {
+                    result.ProposedAction = TradeAction.Sell;
+                    result.SignalDescriptions.Add("EMA7 onder EMA21");
+                }
+            }
+
+            return result;
         }
     }
+
 }

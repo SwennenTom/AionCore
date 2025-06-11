@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AionCoreBot.Domain.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,11 +7,8 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Domain.Interfaces
 {
-    public interface IAnalyzer<TInput, TOutput>
+    public interface IAnalyzer
     {
-        string Name { get; }
-        Task<TOutput> AnalyzeAsync(TInput input, int period);
-        void ResetState(); // optioneel
+        Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval);
     }
-
 }

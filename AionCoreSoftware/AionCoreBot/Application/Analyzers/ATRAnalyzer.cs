@@ -1,58 +1,51 @@
-﻿using AionCoreBot.Domain.Interfaces;
+﻿using AionCoreBot.Application.Interfaces;
+using AionCoreBot.Domain.Enums;
+using AionCoreBot.Domain.Interfaces;
 using AionCoreBot.Domain.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Analyzers
 {
-    public class ATRAnalyzer : IAnalyzer<IEnumerable<Candle>, ATRResult>
+    public class ATRAnalyzer : IAnalyzer
     {
-        public string Name => "ATR";
+        private readonly IIndicatorService<ATRResult> _atrService;
 
-        public void ResetState()
+        public ATRAnalyzer(IIndicatorService<ATRResult> atrService)
         {
-            // Optionele resetlogica
+            _atrService = atrService;
         }
 
-        public Task<ATRResult> AnalyzeAsync(IEnumerable<Candle> candles, int period)
+        public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval)
         {
-            if (candles == null || candles.Count() < period + 1)
-                throw new ArgumentException($"Minstens {period + 1} candles vereist voor ATR-berekening.");
+            var atr = await _atrService.GetLatestAsync(symbol, interval, 14);
 
-            var orderedCandles = candles.OrderBy(c => c.CloseTime).ToList();
-
-            List<decimal> trueRanges = new();
-
-            // Bereken True Range voor elke candle binnen de periode
-            for (int i = 1; i <= period; i++)
+            var result = new SignalEvaluationResult
             {
-                var current = orderedCandles[i];
-                var previous = orderedCandles[i - 1];
+                Symbol = symbol,
+                Interval = interval,
+                EvaluationTime = DateTime.UtcNow,
+                IndicatorValues = new Dictionary<string, decimal>(),
+                SignalDescriptions = new List<string>(),
+                ProposedAction = TradeAction.Hold,
+                ConfidenceScore = 0.5m
+            };
 
-                decimal highLow = current.HighPrice - current.LowPrice;
-                decimal highClose = Math.Abs(current.HighPrice - previous.ClosePrice);
-                decimal lowClose = Math.Abs(current.LowPrice - previous.ClosePrice);
+            if (atr != null)
+            {
+                result.IndicatorValues["ATR14"] = atr.Value;
 
-                decimal trueRange = Math.Max(highLow, Math.Max(highClose, lowClose));
-                trueRanges.Add(trueRange);
+                if (atr.ClosePrice > 0)
+                {
+                    var percentage = atr.Value / atr.ClosePrice;
+
+                    if (percentage > 0.03m)
+                    {
+                        result.SignalDescriptions.Add("ATR wijst op hoge volatiliteit");
+                        result.Reason = "ATR hoger dan 3% van prijs — markt is volatiel.";
+                    }
+                }
             }
 
-            decimal atr = trueRanges.Average();
-
-            var latestCandle = orderedCandles[period];
-
-            return Task.FromResult(new ATRResult
-            {
-                Symbol = latestCandle.Symbol,
-                Interval = latestCandle.Interval,
-                Period = period,
-                Timestamp = latestCandle.CloseTime,
-                ATRValue = atr
-            });
+            return result;
         }
-
     }
 }

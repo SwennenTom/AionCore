@@ -8,7 +8,8 @@ using AionCoreBot.Domain.Models;
 namespace AionCoreBot.Application.Interfaces
 {
     public interface IStrategizer
-    {       
-        Task<TradeDecision> DecideTradeAsync(string symbol, string interval, CancellationToken cancellationToken = default);
+    {
+        Task<TradeDecision> DecideTradeAsync(SignalEvaluationResult signals, CancellationToken cancellationToken = default);
     }
+
 }

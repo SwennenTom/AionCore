@@ -1,59 +1,55 @@
-﻿using AionCoreBot.Domain.Interfaces;
+﻿using AionCoreBot.Application.Interfaces;
+using AionCoreBot.Domain.Enums;
+using AionCoreBot.Domain.Interfaces;
 using AionCoreBot.Domain.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Analyzers
 {
-    public class RSIAnalyzer : IAnalyzer<IEnumerable<Candle>, RSIResult>
+    public class RSIAnalyzer : IAnalyzer
     {
-        public string Name => "RSI";
+        private readonly IIndicatorService<RSIResult> _rsiService;
 
-        public void ResetState()
+        public RSIAnalyzer(IIndicatorService<RSIResult> rsiService)
         {
-            // Optionele resetlogica
+            _rsiService = rsiService;
         }
 
-        public Task<RSIResult> AnalyzeAsync(IEnumerable<Candle> candles, int period)
+        public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval)
         {
-            if (candles == null || candles.Count() < period + 1)
-                throw new ArgumentException($"Minstens {period + 1} candles vereist voor RSI-berekening.");
+            var rsi = await _rsiService.GetLatestAsync(symbol, interval, 14);
 
-            var orderedCandles = candles.OrderBy(c => c.CloseTime).ToList();
-
-            decimal gainSum = 0;
-            decimal lossSum = 0;
-
-            // Bereken winst/verlies over de eerste 'period' candles
-            for (int i = 1; i <= period; i++)
+            var result = new SignalEvaluationResult
             {
-                decimal delta = orderedCandles[i].ClosePrice - orderedCandles[i - 1].ClosePrice;
-                if (delta >= 0)
-                    gainSum += delta;
-                else
-                    lossSum -= delta;
+                Symbol = symbol,
+                Interval = interval,
+                EvaluationTime = DateTime.UtcNow,
+                IndicatorValues = new Dictionary<string, decimal>(),
+                SignalDescriptions = new List<string>(),
+                ProposedAction = TradeAction.Hold,
+                ConfidenceScore = 0.5m
+            };
+
+            if (rsi != null)
+            {
+                result.IndicatorValues["RSI14"] = rsi.Value;
+
+                if (rsi.Value < 30)
+                {
+                    result.ProposedAction = TradeAction.Buy;
+                    result.SignalDescriptions.Add("RSI oversold");
+                    result.Reason = "RSI onder 30 — mogelijk koopmoment.";
+                    result.ConfidenceScore = 0.8m;
+                }
+                else if (rsi.Value > 70)
+                {
+                    result.ProposedAction = TradeAction.Sell;
+                    result.SignalDescriptions.Add("RSI overbought");
+                    result.Reason = "RSI boven 70 — mogelijk verkoopmoment.";
+                    result.ConfidenceScore = 0.8m;
+                }
             }
 
-            decimal avgGain = gainSum / period;
-            decimal avgLoss = lossSum / period;
-
-            decimal rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
-            decimal rsi = 100 - (100 / (1 + rs));
-
-            var latestCandle = orderedCandles[period];
-
-            return Task.FromResult(new RSIResult
-            {
-                Symbol = latestCandle.Symbol,
-                Interval = latestCandle.Interval,
-                Period = period,
-                Timestamp = latestCandle.CloseTime,
-                RSIValue = rsi
-            });
+            return result;
         }
-
     }
 }
