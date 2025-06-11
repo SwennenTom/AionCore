@@ -17,17 +17,17 @@ namespace AionCoreBot.Application.Analyzers
             // Optionele resetlogica
         }
 
-        public Task<ATRResult> AnalyzeAsync(IEnumerable<Candle> candles)
+        public Task<ATRResult> AnalyzeAsync(IEnumerable<Candle> candles, int period)
         {
-            if (candles == null || candles.Count() < 2)
-                throw new ArgumentException("Minstens twee candles vereist voor ATR-berekening.");
+            if (candles == null || candles.Count() < period + 1)
+                throw new ArgumentException($"Minstens {period + 1} candles vereist voor ATR-berekening.");
 
             var orderedCandles = candles.OrderBy(c => c.CloseTime).ToList();
-            var period = orderedCandles.Count;
 
             List<decimal> trueRanges = new();
 
-            for (int i = 1; i < period; i++)
+            // Bereken True Range voor elke candle binnen de periode
+            for (int i = 1; i <= period; i++)
             {
                 var current = orderedCandles[i];
                 var previous = orderedCandles[i - 1];
@@ -41,7 +41,8 @@ namespace AionCoreBot.Application.Analyzers
             }
 
             decimal atr = trueRanges.Average();
-            var latestCandle = orderedCandles.Last();
+
+            var latestCandle = orderedCandles[period];
 
             return Task.FromResult(new ATRResult
             {
@@ -52,5 +53,6 @@ namespace AionCoreBot.Application.Analyzers
                 ATRValue = atr
             });
         }
+
     }
 }

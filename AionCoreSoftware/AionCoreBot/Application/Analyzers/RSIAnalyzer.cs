@@ -17,18 +17,18 @@ namespace AionCoreBot.Application.Analyzers
             // Optionele resetlogica
         }
 
-        public Task<RSIResult> AnalyzeAsync(IEnumerable<Candle> candles)
+        public Task<RSIResult> AnalyzeAsync(IEnumerable<Candle> candles, int period)
         {
-            if (candles == null || candles.Count() < 2)
-                throw new ArgumentException("Minstens twee candles vereist voor RSI-berekening.");
+            if (candles == null || candles.Count() < period + 1)
+                throw new ArgumentException($"Minstens {period + 1} candles vereist voor RSI-berekening.");
 
             var orderedCandles = candles.OrderBy(c => c.CloseTime).ToList();
-            var period = orderedCandles.Count;
 
             decimal gainSum = 0;
             decimal lossSum = 0;
 
-            for (int i = 1; i < period; i++)
+            // Bereken winst/verlies over de eerste 'period' candles
+            for (int i = 1; i <= period; i++)
             {
                 decimal delta = orderedCandles[i].ClosePrice - orderedCandles[i - 1].ClosePrice;
                 if (delta >= 0)
@@ -37,12 +37,13 @@ namespace AionCoreBot.Application.Analyzers
                     lossSum -= delta;
             }
 
-            decimal avgGain = gainSum / (period - 1);
-            decimal avgLoss = lossSum / (period - 1);
+            decimal avgGain = gainSum / period;
+            decimal avgLoss = lossSum / period;
+
             decimal rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
             decimal rsi = 100 - (100 / (1 + rs));
 
-            var latestCandle = orderedCandles.Last();
+            var latestCandle = orderedCandles[period];
 
             return Task.FromResult(new RSIResult
             {
@@ -53,5 +54,6 @@ namespace AionCoreBot.Application.Analyzers
                 RSIValue = rsi
             });
         }
+
     }
 }

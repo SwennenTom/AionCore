@@ -17,26 +17,26 @@ namespace AionCoreBot.Application.Analyzers
             // Reset logica indien nodig
         }
 
-        public Task<EMAResult> AnalyzeAsync(IEnumerable<Candle> candles)
+        public Task<EMAResult> AnalyzeAsync(IEnumerable<Candle> candles, int period)
         {
             if (candles == null || !candles.Any())
                 throw new ArgumentException("Geen candles aangeleverd voor EMA-berekening.");
 
             var orderedCandles = candles.OrderBy(c => c.Timestamp).ToList();
-            var period = orderedCandles.Count;
 
-            if (period < 2)
-                throw new ArgumentException("Minstens twee candles vereist voor EMA-berekening.");
+            if (orderedCandles.Count < period)
+                throw new ArgumentException($"Minstens {period} candles vereist voor EMA-berekening.");
 
             decimal multiplier = 2m / (period + 1);
             decimal? previousEMA = null;
 
-            foreach (var candle in orderedCandles)
+            for (int i = 0; i < orderedCandles.Count; i++)
             {
-                if (previousEMA == null)
-                    previousEMA = candle.ClosePrice; // init: eerste EMA = eerste sluitingsprijs
+                var closePrice = orderedCandles[i].ClosePrice;
+                if (i == 0)
+                    previousEMA = closePrice; // init
                 else
-                    previousEMA = ((candle.ClosePrice - previousEMA.Value) * multiplier) + previousEMA.Value;
+                    previousEMA = ((closePrice - previousEMA.Value) * multiplier) + previousEMA.Value;
             }
 
             var latestCandle = orderedCandles.Last();
@@ -46,7 +46,7 @@ namespace AionCoreBot.Application.Analyzers
                 Symbol = latestCandle.Symbol,
                 Interval = latestCandle.Interval,
                 Period = period,
-                Timestamp = latestCandle.Timestamp,
+                Timestamp = latestCandle.CloseTime,
                 EMAValue = previousEMA ?? 0m
             };
 
