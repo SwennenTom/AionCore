@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using AionCoreBot.Domain.Models;
 
 namespace AionCoreBot.Application.Interfaces
 {
-    internal interface IStrategizer
-    {
+    public interface IStrategizer
+    {       
+        Task<TradeDecision> DecideTradeAsync(string symbol, string interval, CancellationToken cancellationToken = default);
     }
 }

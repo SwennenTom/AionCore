@@ -10,8 +10,10 @@ namespace AionCoreBot.Domain.Models
     public class Candle : ICandle
     {        
         public string Symbol { get; set; }
+        public string Interval { get; set; }
         public DateTime OpenTime { get; set; }
         public DateTime CloseTime { get;  set; }
+        public DateTime Timestamp => CloseTime;
         public decimal OpenPrice { get; set; }
         public decimal HighPrice { get; set; }
         public decimal LowPrice { get; set; }

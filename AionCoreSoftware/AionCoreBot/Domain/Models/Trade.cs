@@ -31,5 +31,10 @@ namespace AionCoreBot.Domain.Models
         public string? Reason { get; set; }                    // (optioneel) Toelichting (bijv. signaalomschrijving)
 
         public bool IsClosed => CloseTime.HasValue;            // Handige property
+
+        public string Exchange { get; set; } = "Unknown";       // Future-proof: welke broker of exchange
+        public long? ExchangeOrderId { get; set; }              // Bijv. Binance OrderId
+        public string? ClientOrderId { get; set; }              // Zelf gegenereerde order-ID
+        public string? BrokerOrderReference { get; set; }
     }
 }

@@ -12,8 +12,8 @@ namespace AionCoreBot.Domain.Models
         public string Symbol { get; set; }
         public string Interval { get; set; }
         public DateTime Timestamp { get; set; }
-        public int period { get; set; }
-        public decimal EMAvalue { get; set; }
+        public int Period { get; set; }
+        public decimal EMAValue { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

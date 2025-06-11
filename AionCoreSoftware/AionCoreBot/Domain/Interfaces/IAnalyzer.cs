@@ -9,9 +9,8 @@ namespace AionCoreBot.Domain.Interfaces
     public interface IAnalyzer<TInput, TOutput>
     {
         string Name { get; }
-
         Task<TOutput> AnalyzeAsync(TInput input);
-
-        void ResetState();
+        void ResetState(); // optioneel
     }
+
 }
