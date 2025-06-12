@@ -1,14 +1,17 @@
-﻿using System;
+﻿using AionCoreBot.Domain.Interfaces;
+using AionCoreBot.Domain.Models;
+using AionCoreBot.Infrastructure.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using AionCoreBot.Application.Interfaces;
-using AionCoreBot.Domain.Models;
 
 namespace AionCoreBot.Worker.Indicators
 {
-    internal class EMAService: IIndicatorService<EMAResult>
+    internal class EMAService:IEMAService
     {
+        
     }
+
 }
