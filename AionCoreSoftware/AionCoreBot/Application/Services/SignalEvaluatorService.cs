@@ -20,32 +20,24 @@ namespace AionCoreBot.Application.Services
             _analyzers = analyzers;
         }
 
-        public async Task<SignalEvaluationResult> EvaluateSignalsAsync(string symbol, string interval)
+        public async Task<List<SignalEvaluationResult>> EvaluateSignalsAsync(string symbol, string interval)
         {
-            var result = new SignalEvaluationResult
-            {
-                Symbol = symbol,
-                Interval = interval,
-                EvaluationTime = DateTime.UtcNow,
-                IndicatorValues = new(),
-                SignalDescriptions = new(),
-                ProposedAction = TradeAction.Hold
-            };
+            var results = new List<SignalEvaluationResult>();
 
             foreach (var analyzer in _analyzers)
             {
                 var partial = await analyzer.AnalyzeAsync(symbol, interval);
+                partial.Symbol = symbol;
+                partial.Interval = interval;
+                partial.EvaluationTime = DateTime.UtcNow;
+                partial.AnalyzerName = analyzer.GetType().Name;
 
-                // Voeg samen
-                result.SignalDescriptions.AddRange(partial.SignalDescriptions);
-                foreach (var kv in partial.IndicatorValues)
-                    result.IndicatorValues[kv.Key] = kv.Value;
-
-                // Scores, acties, confidence kun je hier later ook wegen
+                results.Add(partial);
             }
 
-            return result;
+            return results;
         }
     }
+
 
 }

@@ -9,6 +9,10 @@ namespace AionCoreBot.Application.Interfaces
 {
     public interface ISignalEvaluatorService
     {
-        Task<SignalEvaluationResult> EvaluateSignalsAsync(string symbol, string interval);
+        public interface ISignalEvaluatorService
+        {
+            Task<List<SignalEvaluationResult>> EvaluateSignalsAsync(string symbol, string interval);
+        }
+
     }
 }

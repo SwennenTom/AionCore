@@ -1,15 +1,12 @@
-﻿using System;
+﻿using AionCoreBot.Domain.Models;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using AionCoreBot.Domain.Models;
 
 namespace AionCoreBot.Application.Interfaces
 {
     public interface IStrategizer
     {
-        Task<TradeDecision> DecideTradeAsync(SignalEvaluationResult signals, CancellationToken cancellationToken = default);
+        Task<TradeDecision> DecideTradeAsync(List<SignalEvaluationResult> signals, CancellationToken cancellationToken = default);
     }
-
 }

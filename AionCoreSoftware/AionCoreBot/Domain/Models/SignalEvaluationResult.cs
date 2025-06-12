@@ -10,6 +10,7 @@ namespace AionCoreBot.Domain.Models
     public class SignalEvaluationResult
     {
         public int Id { get; set; }
+        public string? AnalyzerName { get; set; }
 
         public string Symbol { get; set; } = string.Empty;
 
