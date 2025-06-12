@@ -1,12 +1,61 @@
-﻿using System;
+﻿using AionCoreBot.Infrastructure.Interfaces;
+using AionCoreBot.Domain.Models;
+using AionCoreBot.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace AionCoreBot.Infrastructure.Repositories
 {
-    internal class ATRRepository
+    public class ATRRepository : IIndicatorRepository<ATRResult>
     {
+        private readonly ApplicationDbContext _context;
+
+        public ATRRepository(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<ATRResult?> GetByIdAsync(int id)
+        {
+            return await _context.ATRResults.FindAsync(id);
+        }
+
+        public async Task<IEnumerable<ATRResult>> GetAllAsync()
+        {
+            return await _context.ATRResults.ToListAsync();
+        }
+
+        public async Task AddAsync(ATRResult entity)
+        {
+            await _context.ATRResults.AddAsync(entity);
+        }
+
+        public void Update(ATRResult entity)
+        {
+            _context.ATRResults.Update(entity);
+        }
+
+        public void Delete(ATRResult entity)
+        {
+            _context.ATRResults.Remove(entity);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+
+        // This method fetches the latest 'count' ATR results by symbol and interval,
+        // ordered by timestamp descending (latest first)
+        public async Task<IEnumerable<ATRResult>> GetLatestBySymbolAndIntervalAsync(string symbol, string interval, int count = 1)
+        {
+            return await _context.ATRResults
+                .Where(r => r.Symbol == symbol && r.Interval == interval)
+                .OrderByDescending(r => r.Timestamp)
+                .Take(count)
+                .ToListAsync();
+        }
     }
 }

@@ -15,6 +15,7 @@ namespace AionCoreBot.Domain.Models
         public LogClass LogLevel { get; set; } = LogClass.Info;
         public string SourceComponent { get; set; } // e.g., "AionCoreBot.Domain.Models.LogEntry"
         public string ExceptionDetails { get; set; } // Optional, for error logs
+        private LogEntry() { } // EF Core requires a parameterless constructor
         public LogEntry(string message, LogClass logLevel, string source, string exceptionDetails = null)
         {
             Message = message;
