@@ -17,23 +17,16 @@ namespace AionCoreBot.Infrastructure.Repositories
             _context = context;
         }
 
-        // Note: Candle doesn't have a single int Id, so this method returns null or throws
-        public Task<Candle?> GetByIdAsync(int id)
-        {
-            // Because Candle has a composite key, this doesn't really make sense.
-            // Returning null or you could throw a NotSupportedException here.
-            return Task.FromResult<Candle?>(null);
-        }
-
         public async Task<IEnumerable<Candle>> GetAllAsync()
         {
             return await _context.Candles.ToListAsync();
         }
 
-        public async Task<IEnumerable<Candle>> GetBySymbolAsync(string symbol)
+        public async Task<IEnumerable<Candle>> GetBySymbolAndIntervalAsync(string symbol, string interval)
         {
             return await _context.Candles
                 .Where(c => c.Symbol == symbol)
+                .Where(c => c.Interval == interval)
                 .OrderBy(c => c.OpenTime)
                 .ToListAsync();
         }
@@ -52,5 +45,19 @@ namespace AionCoreBot.Infrastructure.Repositories
         {
             await _context.SaveChangesAsync();
         }
+        public async Task<IEnumerable<Candle>> GetCandlesAsync(string symbol, string interval, DateTime startTime, DateTime endTime)
+        {
+            var candles = await _context.Candles
+                .Where(c => c.Symbol == symbol
+                         && c.Interval == interval
+                         && c.OpenTime >= startTime
+                         && c.CloseTime <= endTime)
+                .OrderBy(c => c.OpenTime)
+                .ToListAsync();
+
+            return candles;
+        }
+
+
     }
 }
