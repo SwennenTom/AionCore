@@ -9,7 +9,7 @@ namespace AionCoreBot.Domain.Interfaces
 {
     public interface IATRService
     {
-        Task<ATRResult> CalculateAsync(string symbol, string interval, int period, DateTime? startTime = null, DateTime? endTime = null);
+        Task<ATRResult> CalculateAsync(string symbol, string interval, int period, DateTime startTime, DateTime endTime);
         
     }
 }

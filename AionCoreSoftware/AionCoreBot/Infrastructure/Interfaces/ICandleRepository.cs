@@ -9,11 +9,10 @@ namespace AionCoreBot.Infrastructure.Interfaces
 {
     public interface ICandleRepository
     {
-        Task<Candle?> GetByIdAsync(int id);
         Task<IEnumerable<Candle>> GetAllAsync();
-        Task<IEnumerable<Candle>> GetBySymbolAsync(string symbol);
+        Task<IEnumerable<Candle>> GetBySymbolAndIntervalAsync(string symbol, string interval);
+        Task<IEnumerable<Candle>> GetCandlesAsync(string symbol, string interval, DateTime startTime, DateTime endTime);
         Task AddAsync(Candle entity);
-        //void Update(Candle entity);
         void Delete(Candle entity);
         Task SaveChangesAsync();
     }
