@@ -10,6 +10,8 @@ namespace AionCoreBot.Worker
 {
     public class TradeExecutionService : ITradeExecutionService
     {
+        // Deze service simuleert de uitvoering van handelsorders zonder echte API-aanroepen.
+
         public Task<string> SendOrderAsync(string symbol, TradeAction action, decimal quantity, decimal? price = null)
         {
             // Simuleer order-ID en succesvolle uitvoering

@@ -23,9 +23,10 @@ namespace AionCoreBot.Infrastructure.Repositories
             await _context.RSIResults.AddAsync(entity);
         }
 
-        public void Delete(RSIResult entity)
+        public async Task ClearAllAsync()
         {
-            _context.RSIResults.Remove(entity);
+            _context.RSIResults.RemoveRange(_context.RSIResults);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<IEnumerable<RSIResult>> GetAllAsync()

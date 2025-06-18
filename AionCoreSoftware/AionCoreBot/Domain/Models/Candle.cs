@@ -29,7 +29,7 @@ namespace AionCoreBot.Domain.Models
         public decimal UpperWick => HighPrice - Math.Max(OpenPrice, ClosePrice);
         public decimal LowerWick => Math.Min(OpenPrice, ClosePrice) - LowPrice;
 
-        private Candle() { }
+        public Candle() { }
         public Candle(string symbol, DateTime openTime, DateTime closeTime,
                      decimal open, decimal high, decimal low, decimal close,
                      decimal volume, decimal quoteVolume = 0)
