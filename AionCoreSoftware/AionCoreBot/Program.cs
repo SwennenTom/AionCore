@@ -7,19 +7,22 @@ using AionCoreBot.Infrastructure.Clients;
 using AionCoreBot.Infrastructure.Data;
 using AionCoreBot.Infrastructure.Interfaces;
 using AionCoreBot.Infrastructure.Repositories;
+using AionCoreBot.Infrastructure.Websocket;
 using AionCoreBot.Worker;
 using AionCoreBot.Worker.Indicators;
+using AionCoreBot.Worker.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddHostedService<Worker>();
+builder.Services.AddScoped<BotWorker>();
+builder.Services.AddHostedService<ScopedWorkerHostedService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 options.EnableSensitiveDataLogging()
         .UseSqlite(builder.Configuration.GetConnectionString("DatabaseConnection")));
-
 builder.Services.AddTransient<CandleAggregator>();
+builder.Services.AddScoped<BinanceWebSocketService>();
 builder.Services.AddScoped<ICandleRepository, CandleRepository>();
 builder.Services.AddScoped<ICandleDownloadService, BinanceCandleDownloadService>();
 builder.Services.AddScoped<IIndicatorRepository<EMAResult>, EMARepository>();

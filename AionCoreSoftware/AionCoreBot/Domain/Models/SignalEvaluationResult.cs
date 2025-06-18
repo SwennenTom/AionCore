@@ -18,7 +18,6 @@ namespace AionCoreBot.Domain.Models
 
         public DateTime EvaluationTime { get; set; } = DateTime.UtcNow;
 
-        // De voorlopige trade-actie, bv. Buy, Sell, Hold
         public TradeAction ProposedAction { get; set; } = TradeAction.Hold;
 
         // Optionele toelichting of reden voor deze beslissing

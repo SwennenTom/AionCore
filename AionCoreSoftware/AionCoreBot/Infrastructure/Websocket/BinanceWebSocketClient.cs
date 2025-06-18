@@ -10,7 +10,7 @@ namespace AionCoreBot.Infrastructure.Websocket
     public class BinanceWebSocketClient : IDisposable
     {
         private ClientWebSocket _ws;
-        private readonly Uri _baseUri = new("wss://stream.binance.com:9443/ws");
+        private readonly Uri _baseUri = new("wss://stream.binance.com:9443/stream?streams=");
         private CancellationTokenSource _cts;
 
         public event Action<string>? OnMessageReceived;
@@ -22,7 +22,7 @@ namespace AionCoreBot.Infrastructure.Websocket
             _ws = new ClientWebSocket();
             _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-            var uri = new Uri($"{_baseUri}/{stream}");
+            var uri = new Uri($"{_baseUri}{stream}");
             await _ws.ConnectAsync(uri, _cts.Token);
             OnConnected?.Invoke();
 
@@ -34,10 +34,12 @@ namespace AionCoreBot.Infrastructure.Websocket
             _cts?.Cancel();
 
             if (_ws?.State == WebSocketState.Open)
+            {
                 await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closing", CancellationToken.None);
-
-            OnDisconnected?.Invoke();
+                OnDisconnected?.Invoke();
+            }
         }
+
 
         private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
         {
