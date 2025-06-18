@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AionCoreBot.Infrastructure.Converters;
+using System;
 using System.Text.Json.Serialization;
 
 namespace AionCoreBot.Domain.Models
@@ -47,18 +48,23 @@ namespace AionCoreBot.Domain.Models
             public long LastTradeId { get; set; }
 
             [JsonPropertyName("o")]
+            [JsonConverter(typeof(StringToDecimalConverter))]
             public decimal OpenPrice { get; set; }
 
             [JsonPropertyName("c")]
+            [JsonConverter(typeof(StringToDecimalConverter))]
             public decimal ClosePrice { get; set; }
 
             [JsonPropertyName("h")]
+            [JsonConverter(typeof(StringToDecimalConverter))]
             public decimal HighPrice { get; set; }
 
             [JsonPropertyName("l")]
+            [JsonConverter(typeof(StringToDecimalConverter))]
             public decimal LowPrice { get; set; }
 
             [JsonPropertyName("v")]
+            [JsonConverter(typeof(StringToDecimalConverter))]
             public decimal Volume { get; set; }
 
             [JsonPropertyName("n")]
@@ -68,16 +74,20 @@ namespace AionCoreBot.Domain.Models
             public bool IsFinal { get; set; }
 
             [JsonPropertyName("q")]
+            [JsonConverter(typeof(StringToDecimalConverter))]
             public decimal QuoteAssetVolume { get; set; }
 
             [JsonPropertyName("V")]
+            [JsonConverter(typeof(StringToDecimalConverter))]
             public decimal TakerBuyBaseAssetVolume { get; set; }
 
             [JsonPropertyName("Q")]
+            [JsonConverter(typeof(StringToDecimalConverter))]
             public decimal TakerBuyQuoteAssetVolume { get; set; }
 
             [JsonPropertyName("B")]
             public string Ignore { get; set; }
         }
     }
+
 }

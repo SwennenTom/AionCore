@@ -1,82 +1,28 @@
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
+using AionCoreBot.Infrastructure.Websocket;
 using AionCoreBot.Worker;
+using System.Threading;
 
-public class Worker : BackgroundService
+public class BotWorker
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
+    private readonly BinanceWebSocketService _webSocketService;
 
-    public Worker(IServiceProvider serviceProvider, IConfiguration configuration)
+    public BotWorker(IServiceProvider serviceProvider, IConfiguration configuration, BinanceWebSocketService webSocketService)
     {
         _serviceProvider = serviceProvider;
         _configuration = configuration;
+        _webSocketService = webSocketService;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async Task RunAsync(CancellationToken stoppingToken)
     {
         await InitializeAsync(stoppingToken);
 
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                var now = DateTime.UtcNow;
-                var nextMinute = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0).AddMinutes(1);
-                var delay = nextMinute - now;
-                await Task.Delay(delay + TimeSpan.FromSeconds(2), stoppingToken);
-
-                using var scope = _serviceProvider.CreateScope();
-
-                var candleDownloadService = scope.ServiceProvider.GetRequiredService<ICandleDownloadService>();
-                var candleRepository = scope.ServiceProvider.GetRequiredService<ICandleRepository>();
-                var candleAggregator = scope.ServiceProvider.GetRequiredService<CandleAggregator>();
-
-                var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
-                var intervals = _configuration.GetSection("TimeIntervals:AvailableIntervals").Get<List<string>>() ?? new();
-
-                Console.WriteLine($"[LOOP] {DateTime.UtcNow:HH:mm:ss} Starting candle download...");
-
-                foreach (var symbol in symbols)
-                {
-                    foreach (var interval in intervals)
-                    {
-                        DateTime from = await GetDownloadStartDateAsync(candleRepository, symbol, interval);
-                        DateTime to = DateTime.UtcNow;
-
-                        if (from >= to)
-                            continue;
-
-                        var candles = await candleDownloadService.GetHistoricalCandlesAsync(symbol, interval, from, to);
-
-                        if (candles != null && candles.Any())
-                        {
-                            Console.WriteLine($"[LOOP] Downloaded {candles.Count} candles for {symbol} ({interval})");
-
-                            foreach (var candle in candles)
-                                await candleRepository.AddAsync(candle);
-
-                            await candleRepository.SaveChangesAsync();
-                        }
-                        else
-                        {
-                            Console.WriteLine($"[LOOP] No new candles for {symbol} ({interval})");
-                        }
-                    }
-                }
-
-                await candleAggregator.AggregateAsync();
-                Console.WriteLine($"[LOOP] Candle aggregation complete.\n");
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("[LOOP] Shutdown requested, stopping gracefully.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR - Loop] {ex.Message}");
-            }
-        }
+        var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
+        await _webSocketService.StartAsync(symbols, stoppingToken);        
     }
 
     private async Task InitializeAsync(CancellationToken stoppingToken)
@@ -144,8 +90,26 @@ public class Worker : BackgroundService
     private async Task<DateTime> GetDownloadStartDateAsync(ICandleRepository candleRepository, string symbol, string interval)
     {
         var lastCandle = await candleRepository.GetLastCandleAsync(symbol, interval);
-        return lastCandle != null
-            ? lastCandle.CloseTime.AddMilliseconds(1)
-            : DateTime.UtcNow.AddDays(-14); // Initieel 14 dagen terug
+        if (lastCandle != null)
+        {
+            return AlignToIntervalStart(lastCandle.CloseTime, interval);
+        }
+
+        return AlignToIntervalStart(DateTime.UtcNow.AddDays(-14), interval);
     }
+        private static DateTime AlignToIntervalStart(DateTime time, string interval)
+    {
+        return interval switch
+        {
+            "1m" => new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute, 0, DateTimeKind.Utc).AddMinutes(1),
+            "5m" => new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute / 5 * 5, 0, DateTimeKind.Utc).AddMinutes(5),
+            "15m" => new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute / 15 * 15, 0, DateTimeKind.Utc).AddMinutes(15),
+            "1h" => new DateTime(time.Year, time.Month, time.Day, time.Hour, 0, 0, DateTimeKind.Utc).AddHours(1),
+            "4h" => new DateTime(time.Year, time.Month, time.Day, time.Hour / 4 * 4, 0, 0, DateTimeKind.Utc).AddHours(4),
+            "1d" => new DateTime(time.Year, time.Month, time.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1),
+            _ => throw new ArgumentException($"Unsupported interval: {interval}")
+        };
+    }
+
+
 }
