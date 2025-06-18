@@ -37,9 +37,10 @@ namespace AionCoreBot.Infrastructure.Repositories
             _context.ATRResults.Update(entity);
         }
 
-        public void Delete(ATRResult entity)
+        public async Task ClearAllAsync()
         {
-            _context.ATRResults.Remove(entity);
+            _context.ATRResults.RemoveRange(_context.ATRResults);
+            await _context.SaveChangesAsync();
         }
 
         public async Task SaveChangesAsync()

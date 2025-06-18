@@ -23,9 +23,10 @@ namespace AionCoreBot.Infrastructure.Repositories
             await _context.EMAResults.AddAsync(entity);
         }
 
-        public void Delete(EMAResult entity)
+        public async Task ClearAllAsync()
         {
-            _context.EMAResults.Remove(entity);
+            _context.EMAResults.RemoveRange(_context.EMAResults);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<IEnumerable<EMAResult>> GetAllAsync()

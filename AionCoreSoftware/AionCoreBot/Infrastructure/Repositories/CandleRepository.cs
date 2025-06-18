@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using AionCoreBot.Domain.Models;
@@ -30,17 +31,26 @@ namespace AionCoreBot.Infrastructure.Repositories
                 .OrderBy(c => c.OpenTime)
                 .ToListAsync();
         }
-
+        public async Task<Candle?> GetLastCandleAsync(string symbol, string interval)
+        {
+            return await _context.Candles
+                .Where(c => c.Symbol == symbol && c.Interval == interval)
+                .OrderByDescending(c => c.OpenTime)
+                .FirstOrDefaultAsync();
+        }
         public async Task AddAsync(Candle entity)
         {
             await _context.Candles.AddAsync(entity);
         }
-
-        public void Delete(Candle entity)
+        public async Task AddRangeAsync(IEnumerable<Candle> entities)
         {
-            _context.Candles.Remove(entity);
+            await _context.Candles.AddRangeAsync(entities);
         }
-
+        public async Task ClearAllAsync()
+        {
+            _context.Candles.RemoveRange(_context.Candles);
+            await _context.SaveChangesAsync();
+        }
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
@@ -57,7 +67,13 @@ namespace AionCoreBot.Infrastructure.Repositories
 
             return candles;
         }
-
+        public async Task<bool> ExistsAsync(string symbol, string interval, DateTime openTime)
+        {
+            return await _context.Candles.AnyAsync(c =>
+                c.Symbol == symbol &&
+                c.Interval == interval &&
+                c.OpenTime == openTime);
+        }
 
     }
 }

@@ -37,6 +37,13 @@ namespace AionCoreBot.Infrastructure.Clients
             return await response.Content.ReadAsStringAsync();
         }
 
+        public async Task<string> GetRawAsync(string url)
+        {
+            var response = await _httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+
         public async Task<string> PlaceOrderAsync(string symbol, string side, string type, decimal quantity, decimal? price = null)
         {
             var endpoint = "/api/v3/order";

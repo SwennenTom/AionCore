@@ -15,6 +15,7 @@ namespace AionCoreBot.Application.Interfaces
             Task<TResult?> GetAsync(string symbol, string interval, DateTime timestamp, int period);
             Task<TResult?> GetLatestAsync(string symbol, string interval, int period);
             Task<IEnumerable<TResult>> GetHistoryAsync(string symbol, string interval, int period, DateTime from, DateTime to);
-        
+            Task ClearAllAsync();
+
     }
 }

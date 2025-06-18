@@ -12,5 +12,6 @@ namespace AionCoreBot.Infrastructure.Interfaces
         Task<string> PlaceOrderAsync(string symbol, string side, string type, decimal quantity, decimal? price = null);
         Task<string> GetOrderStatusAsync(string symbol, long orderId);
         Task<string> CancelOrderAsync(string symbol, long orderId);
+        Task<string> GetRawAsync(string url);
     }
 }
