@@ -10,6 +10,7 @@ using AionCoreBot.Infrastructure.Repositories;
 using AionCoreBot.Infrastructure.Websocket;
 using AionCoreBot.Worker;
 using AionCoreBot.Worker.Indicators;
+using AionCoreBot.Worker.Interfaces;
 using AionCoreBot.Worker.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +18,7 @@ using Microsoft.Extensions.Configuration;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddScoped<BotWorker>();
+builder.Services.AddScoped<IAnalyzerWorker, AnalyzerWorker>();
 builder.Services.AddHostedService<ScopedWorkerHostedService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 options.EnableSensitiveDataLogging()

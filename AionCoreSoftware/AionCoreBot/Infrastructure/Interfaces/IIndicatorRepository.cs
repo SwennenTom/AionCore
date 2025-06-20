@@ -14,8 +14,8 @@ namespace AionCoreBot.Infrastructure.Interfaces
         Task<IEnumerable<T>> GetAllAsync();
 
         // Get the latest indicator record for a symbol and interval
-        Task<IEnumerable<T>> GetLatestBySymbolAndIntervalAsync(string symbol, string interval, int count = 1);
-
+        Task<IEnumerable<T>> GetLatestNBySymbolAndIntervalAsync(string symbol, string interval, int count = 1);
+        Task<T> GetLatestBySymbolIntervalPeriodAsync(string symbol, string interval, int period);
         Task AddAsync(T entity);
         //void Update(T entity);
         Task ClearAllAsync();

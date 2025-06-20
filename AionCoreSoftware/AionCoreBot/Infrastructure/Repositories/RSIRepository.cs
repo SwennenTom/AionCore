@@ -39,14 +39,23 @@ namespace AionCoreBot.Infrastructure.Repositories
             return await _context.RSIResults.FindAsync(id);
         }
 
-        public async Task<IEnumerable<RSIResult>> GetLatestBySymbolAndIntervalAsync(string symbol, string interval, int count = 1)
+        public async Task<RSIResult?> GetLatestBySymbolIntervalPeriodAsync(string symbol, string interval, int period)
+        {
+            return await _context.RSIResults
+                .Where(e => e.Symbol == symbol && e.Interval == interval && e.Period == period)
+                .OrderByDescending(e => e.Timestamp)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<RSIResult>> GetLatestNBySymbolAndIntervalAsync(string symbol, string interval, int count = 1)
         {
             return await _context.RSIResults
                 .Where(r => r.Symbol == symbol && r.Interval == interval)
-                .OrderByDescending(r => r.Timestamp)  // Adjust to actual datetime property name
+                .OrderByDescending(r => r.Timestamp)
                 .Take(count)
                 .ToListAsync();
         }
+
 
         public async Task SaveChangesAsync()
         {
