@@ -1,6 +1,5 @@
 ﻿using AionCoreBot.Application.Interfaces;
 using AionCoreBot.Domain.Enums;
-using AionCoreBot.Domain.Interfaces;
 using AionCoreBot.Domain.Models;
 using System;
 using System.Collections.Generic;
@@ -42,12 +41,12 @@ namespace AionCoreBot.Application.Analyzers
                 if (ema7.Value > ema21.Value)
                 {
                     result.ProposedAction = TradeAction.Buy;
-                    result.SignalDescriptions.Add("EMA7 boven EMA21");
+                    result.SignalDescriptions.Add("EMA7 over EMA21");
                 }
                 else if (ema7.Value < ema21.Value)
                 {
                     result.ProposedAction = TradeAction.Sell;
-                    result.SignalDescriptions.Add("EMA7 onder EMA21");
+                    result.SignalDescriptions.Add("EMA7 under EMA21");
                 }
             }
 

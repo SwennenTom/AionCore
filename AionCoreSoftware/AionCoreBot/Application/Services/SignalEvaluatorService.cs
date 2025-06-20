@@ -1,6 +1,5 @@
 ﻿using AionCoreBot.Application.Interfaces;
 using AionCoreBot.Domain.Enums;
-using AionCoreBot.Domain.Interfaces;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Worker.Indicators;
 using System;

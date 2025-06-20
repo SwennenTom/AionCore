@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Domain.Interfaces
+namespace AionCoreBot.Application.Interfaces
 {
     public interface IAnalyzer
     {

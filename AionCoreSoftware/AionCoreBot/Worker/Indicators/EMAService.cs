@@ -1,11 +1,11 @@
-﻿using AionCoreBot.Domain.Interfaces;
-using AionCoreBot.Domain.Models;
+﻿using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
+using AionCoreBot.Worker.Interfaces;
 using Microsoft.Extensions.Configuration;
 
 namespace AionCoreBot.Worker.Indicators
 {
-    internal class EMAService : IEMAService
+    internal class EMAService : IBaseIndicatorService<EMAResult>
     {
         private readonly ICandleRepository _candleRepository;
         private readonly IIndicatorRepository<EMAResult> _emaRepository;

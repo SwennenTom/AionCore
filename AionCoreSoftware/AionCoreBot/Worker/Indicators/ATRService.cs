@@ -1,6 +1,7 @@
-﻿using AionCoreBot.Domain.Interfaces;
+﻿using AionCoreBot.Application.Interfaces;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
+using AionCoreBot.Worker.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Worker.Indicators
 {
-    internal class ATRService : IATRService
+    internal class ATRService : IBaseIndicatorService<ATRResult>
     {
         private readonly ICandleRepository _candleRepository;
         private readonly IIndicatorRepository<ATRResult> _atrRepository;
