@@ -1,6 +1,5 @@
 ﻿using AionCoreBot.Application.Interfaces;
 using AionCoreBot.Domain.Enums;
-using AionCoreBot.Domain.Interfaces;
 using AionCoreBot.Domain.Models;
 
 namespace AionCoreBot.Application.Analyzers
@@ -37,14 +36,14 @@ namespace AionCoreBot.Application.Analyzers
                 {
                     result.ProposedAction = TradeAction.Buy;
                     result.SignalDescriptions.Add("RSI oversold");
-                    result.Reason = "RSI onder 30 — mogelijk koopmoment.";
+                    result.Reason = "RSI under 30";
                     result.ConfidenceScore = 0.8m;
                 }
                 else if (rsi.Value > 70)
                 {
                     result.ProposedAction = TradeAction.Sell;
                     result.SignalDescriptions.Add("RSI overbought");
-                    result.Reason = "RSI boven 70 — mogelijk verkoopmoment.";
+                    result.Reason = "RSI over 70";
                     result.ConfidenceScore = 0.8m;
                 }
             }

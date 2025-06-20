@@ -1,16 +1,19 @@
-﻿using AionCoreBot.Domain.Interfaces;
-using AionCoreBot.Worker.Indicators;
+﻿using AionCoreBot.Application.Interfaces;
+using AionCoreBot.Domain.Models;
 using AionCoreBot.Worker.Interfaces;
 
 namespace AionCoreBot.Worker.Services
 {
     public class AnalyzerWorker : IAnalyzerWorker
     {
-        private readonly IEMAService _emaService;
-        private readonly IATRService _atrService;
-        private readonly IRSIService _rsiService;
+        private readonly IBaseIndicatorService<EMAResult> _emaService;
+        private readonly IBaseIndicatorService<ATRResult> _atrService;
+        private readonly IBaseIndicatorService<RSIResult> _rsiService;
 
-        public AnalyzerWorker(IEMAService emaService, IATRService atrService, IRSIService rsiService)
+        public AnalyzerWorker(
+            IBaseIndicatorService<EMAResult> emaService,
+            IBaseIndicatorService<ATRResult> atrService,
+            IBaseIndicatorService<RSIResult> rsiService)
         {
             _emaService = emaService;
             _atrService = atrService;

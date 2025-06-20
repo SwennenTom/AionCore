@@ -1,6 +1,6 @@
-﻿using AionCoreBot.Domain.Interfaces;
-using AionCoreBot.Domain.Models;
+﻿using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
+using AionCoreBot.Worker.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Worker.Indicators
 {
-    internal class RSIService : IRSIService
+    internal class RSIService : IBaseIndicatorService<RSIResult>
     {
         private readonly ICandleRepository _candleRepository;
         private readonly IIndicatorRepository<RSIResult> _rsiRepository;

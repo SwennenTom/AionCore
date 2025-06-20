@@ -1,7 +1,6 @@
 using AionCoreBot;
 using AionCoreBot.Application.Interfaces;
 using AionCoreBot.Application.Services;
-using AionCoreBot.Domain.Interfaces;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Clients;
 using AionCoreBot.Infrastructure.Data;
@@ -30,9 +29,9 @@ builder.Services.AddScoped<ICandleDownloadService, BinanceCandleDownloadService>
 builder.Services.AddScoped<IIndicatorRepository<EMAResult>, EMARepository>();
 builder.Services.AddScoped<IIndicatorRepository<RSIResult>, RSIRepository>();
 builder.Services.AddScoped<IIndicatorRepository<ATRResult>, ATRRepository>();
-builder.Services.AddScoped<IATRService, ATRService>();
-builder.Services.AddScoped<IEMAService, EMAService>();
-builder.Services.AddScoped<IRSIService, RSIService>();
+builder.Services.AddScoped<IBaseIndicatorService<EMAResult>, EMAService>();
+builder.Services.AddScoped<IBaseIndicatorService<ATRResult>, ATRService>();
+builder.Services.AddScoped<IBaseIndicatorService<RSIResult>, RSIService>();
 builder.Services.AddScoped<ISignalEvaluatorService, SignalEvaluatorService>();
 builder.Services.AddScoped<IBinanceRestClient>(sp =>
 {
