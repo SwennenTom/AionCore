@@ -2,6 +2,8 @@ using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
 using AionCoreBot.Infrastructure.Websocket;
 using AionCoreBot.Worker;
+using AionCoreBot.Worker.Interfaces;
+using AionCoreBot.Worker.Services;
 using System.Threading;
 
 public class BotWorker
@@ -16,13 +18,27 @@ public class BotWorker
         _configuration = configuration;
         _webSocketService = webSocketService;
     }
-
     public async Task RunAsync(CancellationToken stoppingToken)
     {
+        var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
+
+        Console.WriteLine("[BOOT] Clearing old candle and indicator data...");
+        await ClearAllDataAsync();
+
+        Console.WriteLine("[BOOT] Starting WebSocket...");
+        var webSocketTask = _webSocketService.StartAsync(symbols, stoppingToken);
+
+        Console.WriteLine("[BOOT] Starting historical initialization...");
         await InitializeAsync(stoppingToken);
 
-        var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
-        await _webSocketService.StartAsync(symbols, stoppingToken);        
+        Console.WriteLine("[BOOT] Init complete. Starting analyzers...");
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var analyzerOrchestrator = scope.ServiceProvider.GetRequiredService<IAnalyzerWorker>();
+            await analyzerOrchestrator.RunAllAsync();
+        }
+
+        await webSocketTask;
     }
 
     private async Task InitializeAsync(CancellationToken stoppingToken)
@@ -67,7 +83,7 @@ public class BotWorker
                     if (candles != null && candles.Any())
                     {
                         Console.WriteLine($"[INIT] {candles.Count} candles for {symbol} ({interval})");
-                                              
+
                         foreach (var candle in candles)
                             await candleRepository.AddAsync(candle);
 
@@ -97,7 +113,7 @@ public class BotWorker
 
         return AlignToIntervalStart(DateTime.UtcNow.AddDays(-14), interval);
     }
-        private static DateTime AlignToIntervalStart(DateTime time, string interval)
+    private static DateTime AlignToIntervalStart(DateTime time, string interval)
     {
         return interval switch
         {
@@ -110,6 +126,19 @@ public class BotWorker
             _ => throw new ArgumentException($"Unsupported interval: {interval}")
         };
     }
+    private async Task ClearAllDataAsync()
+    {
+        using var scope = _serviceProvider.CreateScope();
 
+        var candleRepository = scope.ServiceProvider.GetRequiredService<ICandleRepository>();
+        var emaRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<EMAResult>>();
+        var rsiRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<RSIResult>>();
+        var atrRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<ATRResult>>();
+
+        await candleRepository.ClearAllAsync();
+        await emaRepository.ClearAllAsync();
+        await rsiRepository.ClearAllAsync();
+        await atrRepository.ClearAllAsync();
+    }
 
 }

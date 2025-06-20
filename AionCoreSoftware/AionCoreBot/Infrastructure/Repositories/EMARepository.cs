@@ -39,7 +39,15 @@ namespace AionCoreBot.Infrastructure.Repositories
             return await _context.EMAResults.FindAsync(id);
         }
 
-        public async Task<IEnumerable<EMAResult>> GetLatestBySymbolAndIntervalAsync(string symbol, string interval, int count = 1)
+        public async Task<EMAResult?> GetLatestBySymbolIntervalPeriodAsync(string symbol, string interval, int period)
+        {
+            return await _context.EMAResults
+                .Where(e => e.Symbol == symbol && e.Interval == interval && e.Period == period)
+                .OrderByDescending(e => e.Timestamp)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<EMAResult>> GetLatestNBySymbolAndIntervalAsync(string symbol, string interval, int count = 1)
         {
             return await _context.EMAResults
                 .Where(e => e.Symbol == symbol && e.Interval == interval)

@@ -10,6 +10,7 @@ namespace AionCoreBot.Domain.Interfaces
     public interface IEMAService
     {
         Task<EMAResult> CalculateAsync(string symbol, string interval, int period, DateTime startTime, DateTime endTime);
+        Task CalcAllAsync();
 
     }
 }

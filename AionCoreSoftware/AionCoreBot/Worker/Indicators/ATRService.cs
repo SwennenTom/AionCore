@@ -1,6 +1,7 @@
 ﻿using AionCoreBot.Domain.Interfaces;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,11 +13,13 @@ namespace AionCoreBot.Worker.Indicators
     {
         private readonly ICandleRepository _candleRepository;
         private readonly IIndicatorRepository<ATRResult> _atrRepository;
+        private readonly IConfiguration _configuration;
 
-        public ATRService(ICandleRepository candleRepository, IIndicatorRepository<ATRResult> atrRepository)
+        public ATRService(ICandleRepository candleRepository, IIndicatorRepository<ATRResult> atrRepository, IConfiguration configuration)
         {
             _candleRepository = candleRepository;
             _atrRepository = atrRepository;
+            _configuration = configuration;
         }
 
         public async Task<ATRResult> CalculateAsync(string symbol, string interval, int period, DateTime startTime, DateTime endTime)
@@ -70,5 +73,113 @@ namespace AionCoreBot.Worker.Indicators
 
             return result;
         }
+
+        public async Task CalcAllAsync()
+        {
+            Console.WriteLine("[ATR] Starting ATR calculation for all symbols and intervals.");
+
+            var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
+            var intervals = _configuration.GetSection("TimeIntervals:AvailableIntervals").Get<List<string>>() ?? new();
+            var atrPeriods = _configuration.GetSection("TimeIntervals:IndicatorPeriods:ATR").Get<List<int>>() ?? new List<int> { 14 };
+
+            foreach (var symbol in symbols)
+            {
+                foreach (var interval in intervals)
+                {
+                    Console.WriteLine($"[ATR] Processing {symbol} - {interval}");
+
+                    // Ophalen en sorteren
+                    var candles = await _candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
+                    var candlesList = candles.OrderBy(c => c.OpenTime).ToList();
+
+                    if (!candlesList.Any())
+                    {
+                        Console.WriteLine($"[ATR] No candles found for {symbol} - {interval}");
+                        continue;
+                    }
+
+                    foreach (var atrPeriod in atrPeriods)
+                    {
+
+
+                        var lastATR = await _atrRepository.GetLatestBySymbolIntervalPeriodAsync(symbol, interval, atrPeriod);
+
+                        int startIndex = 0;
+                        if (lastATR != null)
+                        {
+                            startIndex = candlesList.FindIndex(c => c.OpenTime > lastATR.Timestamp);
+                            if (startIndex < 0) startIndex = 0;
+                        }
+
+                        decimal? previousATR = lastATR?.Value;
+
+                        for (int i = startIndex; i < candlesList.Count; i++)
+                        {
+                            var candle = candlesList[i];
+                            decimal tr = CalculateTrueRange(candlesList, i);
+
+                            decimal atr;
+                            if (i == 0 || previousATR == null)
+                            {
+                                if (candlesList.Count >= atrPeriod)
+                                {
+                                    var trSum = 0m;
+                                    for (int j = 0; j < atrPeriod && j < candlesList.Count; j++)
+                                        trSum += CalculateTrueRange(candlesList, j);
+                                    atr = trSum / atrPeriod;
+                                }
+                                else
+                                {
+                                    atr = tr;
+                                }
+                            }
+                            else
+                            {
+                                atr = (previousATR.Value * (atrPeriod - 1) + tr) / atrPeriod;
+                            }
+
+                            atr = Math.Round(atr, 2);
+
+                            var atrResult = new ATRResult
+                            {
+                                Symbol = symbol,
+                                Interval = interval,
+                                Timestamp = candle.OpenTime,
+                                Value = atr
+                            };
+
+                            await _atrRepository.AddAsync(atrResult);
+                            previousATR = atr;
+
+                            if (i % 50 == 0)
+                            {
+                                await _atrRepository.SaveChangesAsync();
+                            }
+                        }
+
+                        await _atrRepository.SaveChangesAsync();
+                        Console.WriteLine($"[ATR] Finished processing {symbol} - {interval}");
+                    }
+                }
+            }
+
+            Console.WriteLine("[ATR] ATR calculation finished for all symbols and intervals.");
+        }
+
+
+        private decimal CalculateTrueRange(IList<Candle> candles, int i)
+        {
+            var current = candles[i];
+            if (i == 0) return current.HighPrice - current.LowPrice;
+
+            var previousClose = candles[i - 1].ClosePrice;
+
+            var highLow = current.HighPrice - current.LowPrice;
+            var highPrevClose = Math.Abs(current.HighPrice - previousClose);
+            var lowPrevClose = Math.Abs(current.LowPrice - previousClose);
+
+            return Math.Max(highLow, Math.Max(highPrevClose, lowPrevClose));
+        }
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using AionCoreBot.Domain.Models;
+using AionCoreBot.Infrastructure.Data;
 using AionCoreBot.Infrastructure.Interfaces;
 using AionCoreBot.Infrastructure.Websocket;
 using AionCoreBot.Worker.Services;
@@ -14,21 +15,21 @@ namespace AionCoreBot.Infrastructure.Websocket
     public class BinanceWebSocketService
     {
         private BinanceWebSocketClient _client;
-        private readonly ICandleRepository _candleRepository;
         private readonly List<string> _symbols;
         private CancellationToken _externalCancellationToken;
         private BinanceTimeSynchronizer _timeSynchronizer;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         private int _reconnectAttempts = 0;
         private const int MaxReconnectAttempts = 1440;
         private const int BaseDelaySeconds = 5;
         private bool _isReconnecting = false;
 
-        public BinanceWebSocketService(ICandleRepository candleRepository)
+        public BinanceWebSocketService(IServiceScopeFactory scopeFactory)
         {
-            _candleRepository = candleRepository;
             _symbols = new List<string>();
             _timeSynchronizer = new BinanceTimeSynchronizer();
+            _scopeFactory = scopeFactory;
         }
 
         public async Task StartAsync(IEnumerable<string> symbols, CancellationToken cancellationToken)
@@ -69,18 +70,18 @@ namespace AionCoreBot.Infrastructure.Websocket
             {
                 await _client.ConnectAsync(streams, cancellationToken);
                 _reconnectAttempts = 0;
-                Console.WriteLine("[WS] Connected to Binance stream.");
+                //Console.WriteLine("[WS] Connected to Binance stream.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[WS] Initial connection failed: {ex.Message}");
+                //Console.WriteLine($"[WS] Initial connection failed: {ex.Message}");
                 await AttemptReconnectAsync();
             }
         }
 
         private async void OnDisconnected()
         {
-            Console.WriteLine("[WS] Disconnected from Binance. Attempting reconnect...");
+            //Console.WriteLine("[WS] Disconnected from Binance. Attempting reconnect...");
             await AttemptReconnectAsync();
         }
 
@@ -95,22 +96,22 @@ namespace AionCoreBot.Infrastructure.Websocket
                 {
                     _reconnectAttempts++;
                     int delay = Math.Min(60, _reconnectAttempts * 5);
-                    Console.WriteLine($"[WS] Waiting {delay} seconds before reconnect attempt #{_reconnectAttempts}...");
+                    //Console.WriteLine($"[WS] Waiting {delay} seconds before reconnect attempt #{_reconnectAttempts}...");
                     await Task.Delay(TimeSpan.FromSeconds(delay), _externalCancellationToken);
 
                     await ConnectAndSubscribeAsync(_externalCancellationToken);
-                    Console.WriteLine("[WS] Reconnected successfully.");
+                    //Console.WriteLine("[WS] Reconnected successfully.");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[WS] Reconnect attempt #{_reconnectAttempts} failed: {ex.Message}");
+                    //Console.WriteLine($"[WS] Reconnect attempt #{_reconnectAttempts} failed: {ex.Message}");
                 }
             }
 
             if (_reconnectAttempts >= MaxReconnectAttempts)
             {
-                Console.WriteLine("[WS] Max reconnect attempts reached. Giving up.");
+                //Console.WriteLine("[WS] Max reconnect attempts reached. Giving up.");
             }
 
             _isReconnecting = false;
@@ -123,10 +124,13 @@ namespace AionCoreBot.Infrastructure.Websocket
                 var binanceKline = JsonSerializer.Deserialize<BinanceKlineMessage>(message);
                 var c = binanceKline?.Data?.Kline;
 
-                Console.WriteLine($"[WS] Message {binanceKline?.Stream} IsFinal={c?.IsFinal}");
+                //Console.WriteLine($"[WS] Message {binanceKline?.Stream} IsFinal={c?.IsFinal}");
 
                 if (c?.IsFinal == true)
                 {
+                    using var scope = _scopeFactory.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
                     var symbol = binanceKline.Data.Symbol;
 
                     var candle = new Candle(
@@ -138,17 +142,21 @@ namespace AionCoreBot.Infrastructure.Websocket
                         c.LowPrice,
                         c.ClosePrice,
                         c.Volume
-                    );
+                    )
+                    {
+                        Interval = c.Interval
+                    };
 
-                    await _candleRepository.AddAsync(candle);
-                    await _candleRepository.SaveChangesAsync();
+                    await dbContext.AddAsync(candle);
+                    await dbContext.SaveChangesAsync();
 
-                    Console.WriteLine($"[WS] Final candle stored: {symbol} @ {c.CloseTime}");
+                    //Console.WriteLine($"[WS] Final candle stored: {symbol} @ {DateTimeOffset.FromUnixTimeMilliseconds(c.CloseTime).UtcDateTime:yyyy-MM-dd HH:mm:ss}");
+
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[WS] Error handling message: {ex.Message}\nPayload: {message}");
+                //Console.WriteLine($"[WS] Error handling message: {ex.Message}\nPayload: {message}");
             }
         }
 
