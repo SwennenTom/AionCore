@@ -1,25 +1,26 @@
 ﻿using AionCoreBot.Application.Interfaces;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 namespace AionCoreBot.Application.Analyzers
 {
     public class EMAAnalyzer : IAnalyzer
     {
         private readonly IIndicatorService<EMAResult> _emaService;
+        private readonly IConfiguration _configuration;
 
-        public EMAAnalyzer(IIndicatorService<EMAResult> emaService)
+        public EMAAnalyzer(IIndicatorService<EMAResult> emaService, IConfiguration configuration)
         {
             _emaService = emaService;
+            _configuration = configuration;
         }
 
         public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval)
         {
+            int shortPeriod = _configuration.GetValue<int>("IndicatorParameters:EMA:ShortPeriod", 7);
+            int mediumPeriod = _configuration.GetValue<int>("IndicatorParameters:EMA:MediumPeriod", 21);
+
             var result = new SignalEvaluationResult
             {
                 Symbol = symbol,
@@ -30,28 +31,39 @@ namespace AionCoreBot.Application.Analyzers
                 SignalDescriptions = new()
             };
 
-            var ema7 = await _emaService.GetLatestAsync(symbol, interval, 7);
-            var ema21 = await _emaService.GetLatestAsync(symbol, interval, 21);
+            var emaShort = await _emaService.GetLatestAsync(symbol, interval, shortPeriod);
+            var emaMedium = await _emaService.GetLatestAsync(symbol, interval, mediumPeriod);
 
-            if (ema7 != null && ema21 != null)
+            if (emaShort != null && emaMedium != null)
             {
-                result.IndicatorValues["EMA7"] = ema7.Value;
-                result.IndicatorValues["EMA21"] = ema21.Value;
+                result.IndicatorValues[$"EMA{shortPeriod}"] = emaShort.Value;
+                result.IndicatorValues[$"EMA{mediumPeriod}"] = emaMedium.Value;
 
-                if (ema7.Value > ema21.Value)
+                if (emaShort.Value > emaMedium.Value)
                 {
                     result.ProposedAction = TradeAction.Buy;
-                    result.SignalDescriptions.Add("EMA7 over EMA21");
+                    result.SignalDescriptions.Add($"EMA{shortPeriod} over EMA{mediumPeriod}");
                 }
-                else if (ema7.Value < ema21.Value)
+                else if (emaShort.Value < emaMedium.Value)
                 {
                     result.ProposedAction = TradeAction.Sell;
-                    result.SignalDescriptions.Add("EMA7 under EMA21");
+                    result.SignalDescriptions.Add($"EMA{shortPeriod} under EMA{mediumPeriod}");
                 }
             }
 
-            return result;
+            var EMARatio =((emaShort.Value-emaMedium.Value) / emaMedium.Value) * 100m;
+            if(Math.Abs(EMARatio) < 2)
+            {
+                result.ConfidenceScore = 0m;
+            } else if (Math.Abs(EMARatio) < 5)
+            {
+                result.ConfidenceScore = 0.5m;
+            } else if (Math.Abs(EMARatio) < 10)
+            {
+                result.ConfidenceScore = 1.0m;
+            }
+
+                return result;
         }
     }
-
 }

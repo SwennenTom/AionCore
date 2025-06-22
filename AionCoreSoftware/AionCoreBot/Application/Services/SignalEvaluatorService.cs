@@ -30,6 +30,7 @@ namespace AionCoreBot.Application.Services
                 partial.Interval = interval;
                 partial.EvaluationTime = DateTime.UtcNow;
                 partial.AnalyzerName = analyzer.GetType().Name;
+                partial.ConfidenceScore ??=1.0m;
 
                 results.Add(partial);
             }
