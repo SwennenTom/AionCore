@@ -1,6 +1,6 @@
 using AionCoreBot.Domain.Models;
+using AionCoreBot.Infrastructure.Comms.Websocket;
 using AionCoreBot.Infrastructure.Interfaces;
-using AionCoreBot.Infrastructure.Websocket;
 using AionCoreBot.Worker;
 using AionCoreBot.Worker.Interfaces;
 using AionCoreBot.Worker.Services;
@@ -48,19 +48,7 @@ public class BotWorker
             using var scope = _serviceProvider.CreateScope();
 
             var candleDownloadService = scope.ServiceProvider.GetRequiredService<ICandleDownloadService>();
-            var candleRepository = scope.ServiceProvider.GetRequiredService<ICandleRepository>();
-            var candleAggregator = scope.ServiceProvider.GetRequiredService<CandleAggregator>();
-
-            var emaRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<EMAResult>>();
-            var rsiRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<RSIResult>>();
-            var atrRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<ATRResult>>();
-
-            Console.WriteLine("[INIT] Clearing old candle and indicator data...");
-
-            await candleRepository.ClearAllAsync();
-            await emaRepository.ClearAllAsync();
-            await rsiRepository.ClearAllAsync();
-            await atrRepository.ClearAllAsync();
+            var candleRepository = scope.ServiceProvider.GetRequiredService<ICandleRepository>();            
 
             var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
             var intervals = _configuration.GetSection("TimeIntervals:AvailableIntervals").Get<List<string>>() ?? new();
@@ -103,29 +91,6 @@ public class BotWorker
         }
     }
 
-    private async Task<DateTime> GetDownloadStartDateAsync(ICandleRepository candleRepository, string symbol, string interval)
-    {
-        var lastCandle = await candleRepository.GetLastCandleAsync(symbol, interval);
-        if (lastCandle != null)
-        {
-            return AlignToIntervalStart(lastCandle.CloseTime, interval);
-        }
-
-        return AlignToIntervalStart(DateTime.UtcNow.AddDays(-14), interval);
-    }
-    private static DateTime AlignToIntervalStart(DateTime time, string interval)
-    {
-        return interval switch
-        {
-            "1m" => new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute, 0, DateTimeKind.Utc).AddMinutes(1),
-            "5m" => new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute / 5 * 5, 0, DateTimeKind.Utc).AddMinutes(5),
-            "15m" => new DateTime(time.Year, time.Month, time.Day, time.Hour, time.Minute / 15 * 15, 0, DateTimeKind.Utc).AddMinutes(15),
-            "1h" => new DateTime(time.Year, time.Month, time.Day, time.Hour, 0, 0, DateTimeKind.Utc).AddHours(1),
-            "4h" => new DateTime(time.Year, time.Month, time.Day, time.Hour / 4 * 4, 0, 0, DateTimeKind.Utc).AddHours(4),
-            "1d" => new DateTime(time.Year, time.Month, time.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1),
-            _ => throw new ArgumentException($"Unsupported interval: {interval}")
-        };
-    }
     private async Task ClearAllDataAsync()
     {
         using var scope = _serviceProvider.CreateScope();

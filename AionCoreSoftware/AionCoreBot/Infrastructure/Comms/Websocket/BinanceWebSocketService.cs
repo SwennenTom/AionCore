@@ -1,7 +1,6 @@
 ﻿using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Data;
 using AionCoreBot.Infrastructure.Interfaces;
-using AionCoreBot.Infrastructure.Websocket;
 using AionCoreBot.Worker.Services;
 using System;
 using System.Collections.Generic;
@@ -10,7 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Infrastructure.Websocket
+namespace AionCoreBot.Infrastructure.Comms.Websocket
 {
     public class BinanceWebSocketService
     {

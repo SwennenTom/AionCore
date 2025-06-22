@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Infrastructure.Clients
+namespace AionCoreBot.Infrastructure.Comms.Clients
 {
     internal class BinanceCandleDownloadService : ICandleDownloadService
     {

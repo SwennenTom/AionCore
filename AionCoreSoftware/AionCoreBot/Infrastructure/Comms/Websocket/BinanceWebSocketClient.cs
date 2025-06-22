@@ -5,7 +5,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Infrastructure.Websocket
+namespace AionCoreBot.Infrastructure.Comms.Websocket
 {
     public class BinanceWebSocketClient : IDisposable
     {

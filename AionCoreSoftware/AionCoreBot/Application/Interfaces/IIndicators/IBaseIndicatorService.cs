@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Worker.Interfaces
+namespace AionCoreBot.Application.Interfaces.IIndicators
 {
     public interface IBaseIndicatorService<TResult>
     {

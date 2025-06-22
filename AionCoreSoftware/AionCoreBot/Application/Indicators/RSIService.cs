@@ -1,13 +1,13 @@
-﻿using AionCoreBot.Domain.Models;
+﻿using AionCoreBot.Application.Interfaces.IIndicators;
+using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
-using AionCoreBot.Worker.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Worker.Indicators
+namespace AionCoreBot.Application.Indicators
 {
     internal class RSIService : IBaseIndicatorService<RSIResult>
     {
@@ -47,7 +47,7 @@ namespace AionCoreBot.Worker.Indicators
             decimal avgLoss = losses.DefaultIfEmpty(0).Average();
 
             decimal rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
-            decimal rsi = 100 - (100 / (1 + rs));
+            decimal rsi = 100 - 100 / (1 + rs);
 
             // Wilder's smoothing toepassen voor resterende candles
             for (int i = period + 1; i < ordered.Count; i++)
@@ -56,11 +56,11 @@ namespace AionCoreBot.Worker.Indicators
                 decimal gain = change > 0 ? change : 0;
                 decimal loss = change < 0 ? Math.Abs(change) : 0;
 
-                avgGain = ((avgGain * (period - 1)) + gain) / period;
-                avgLoss = ((avgLoss * (period - 1)) + loss) / period;
+                avgGain = (avgGain * (period - 1) + gain) / period;
+                avgLoss = (avgLoss * (period - 1) + loss) / period;
 
                 rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
-                rsi = 100 - (100 / (1 + rs));
+                rsi = 100 - 100 / (1 + rs);
             }
 
             rsi = Math.Round(rsi, 2);
@@ -141,12 +141,12 @@ namespace AionCoreBot.Worker.Indicators
                                 var gain = change > 0 ? change : 0;
                                 var loss = change < 0 ? Math.Abs(change) : 0;
 
-                                avgGain = ((avgGain * (rsiPeriod - 1)) + gain) / rsiPeriod;
-                                avgLoss = ((avgLoss * (rsiPeriod - 1)) + loss) / rsiPeriod;
+                                avgGain = (avgGain * (rsiPeriod - 1) + gain) / rsiPeriod;
+                                avgLoss = (avgLoss * (rsiPeriod - 1) + loss) / rsiPeriod;
                             }
 
                             decimal rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
-                            decimal rsi = 100 - (100 / (1 + rs));
+                            decimal rsi = 100 - 100 / (1 + rs);
 
                             var rsiResult = new RSIResult
                             {

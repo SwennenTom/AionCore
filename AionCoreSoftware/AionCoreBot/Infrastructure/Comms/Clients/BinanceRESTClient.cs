@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Web;
 using AionCoreBot.Infrastructure.Interfaces;
 
-namespace AionCoreBot.Infrastructure.Clients
+namespace AionCoreBot.Infrastructure.Comms.Clients
 {    
     public class BinanceRestClient : IBinanceRestClient, IDisposable
     {

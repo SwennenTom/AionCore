@@ -1,14 +1,13 @@
-﻿using AionCoreBot.Application.Interfaces;
+﻿using AionCoreBot.Application.Interfaces.IIndicators;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
-using AionCoreBot.Worker.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Worker.Indicators
+namespace AionCoreBot.Application.Indicators
 {
     internal class ATRService : IBaseIndicatorService<ATRResult>
     {
@@ -56,7 +55,7 @@ namespace AionCoreBot.Worker.Indicators
             // Daarna Wilder’s smoothing
             for (int i = period; i < trueRanges.Count; i++)
             {
-                atr = ((atr * (period - 1)) + trueRanges[i]) / period;
+                atr = (atr * (period - 1) + trueRanges[i]) / period;
             }
 
             var result = new ATRResult

@@ -1,9 +1,9 @@
-﻿using AionCoreBot.Domain.Models;
+﻿using AionCoreBot.Application.Interfaces.IIndicators;
+using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
-using AionCoreBot.Worker.Interfaces;
 using Microsoft.Extensions.Configuration;
 
-namespace AionCoreBot.Worker.Indicators
+namespace AionCoreBot.Application.Indicators
 {
     internal class EMAService : IBaseIndicatorService<EMAResult>
     {
@@ -99,7 +99,7 @@ namespace AionCoreBot.Worker.Indicators
                             if (startIndex < 0) startIndex = 0;
                         }
 
-                        double? previousEMA = lastEMA?.Value != null ? (double?)Convert.ToDouble(lastEMA.Value) : null;
+                        double? previousEMA = lastEMA?.Value != null ? Convert.ToDouble(lastEMA.Value) : null;
                         double multiplier = 2.0 / (emaPeriod + 1);
 
                         for (int i = startIndex; i < candlesList.Count; i++)

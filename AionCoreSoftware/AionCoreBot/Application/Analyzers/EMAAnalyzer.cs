@@ -1,4 +1,4 @@
-﻿using AionCoreBot.Application.Interfaces;
+﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
 using Microsoft.Extensions.Configuration;
