@@ -34,7 +34,7 @@ namespace AionCoreBot.Application.Services
                 partial.Interval = interval;
                 partial.EvaluationTime = DateTime.UtcNow;
                 partial.AnalyzerName = analyzer.GetType().Name;
-                partial.ConfidenceScore ??=0.0m;
+                partial.ConfidenceScore ??= 0.0m;
 
                 results.Add(partial);
             }
@@ -43,6 +43,31 @@ namespace AionCoreBot.Application.Services
 
             return results;
         }
+        public async Task<List<SignalEvaluationResult>> EvaluateHistoricalSignalsAsync(string symbol, string interval, List<DateTime> evaluationPoints)
+        {
+            var results = new List<SignalEvaluationResult>();
+
+            foreach (var timestamp in evaluationPoints)
+            {
+                foreach (var analyzer in _analyzers)
+                {
+                    var result = await analyzer.AnalyzeAsync(symbol, interval, timestamp); // timestamp-aware!
+                    result.Symbol = symbol;
+                    result.Interval = interval;
+                    result.EvaluationTime = timestamp;
+                    result.AnalyzerName = analyzer.GetType().Name;
+                    result.ConfidenceScore ??= 0.0m;
+
+                    results.Add(result);
+                }
+            }
+
+            await _signalRepo.AddRangeAsync(results);
+            await _signalRepo.SaveChangesAsync();
+
+            return results;
+        }
+
     }
 
 

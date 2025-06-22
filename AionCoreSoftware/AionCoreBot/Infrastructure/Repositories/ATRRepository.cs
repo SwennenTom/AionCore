@@ -48,8 +48,6 @@ namespace AionCoreBot.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        // This method fetches the latest 'count' ATR results by symbol and interval,
-        // ordered by timestamp descending (latest first)
         public async Task<IEnumerable<ATRResult>> GetLatestNBySymbolAndIntervalAsync(string symbol, string interval, int count = 1)
         {
             return await _context.ATRResults
@@ -58,6 +56,7 @@ namespace AionCoreBot.Infrastructure.Repositories
                 .Take(count)
                 .ToListAsync();
         }
+
         public async Task<ATRResult?> GetLatestBySymbolIntervalPeriodAsync(string symbol, string interval, int period)
         {
             return await _context.ATRResults
@@ -65,6 +64,15 @@ namespace AionCoreBot.Infrastructure.Repositories
                 .OrderByDescending(e => e.Timestamp)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<ATRResult?> GetLatestBeforeAsync(string symbol, string interval, int period, DateTime time)
+        {
+            return await _context.ATRResults
+                .Where(r => r.Symbol == symbol && r.Interval == interval && r.Period == period && r.Timestamp <= time)
+                .OrderByDescending(r => r.Timestamp)
+                .FirstOrDefaultAsync();
+        }
+
 
     }
 }

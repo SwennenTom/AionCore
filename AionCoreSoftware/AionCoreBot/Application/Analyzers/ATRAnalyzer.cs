@@ -18,6 +18,11 @@ namespace AionCoreBot.Application.Analyzers
 
         public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval)
         {
+            return await AnalyzeAsync(symbol, interval, DateTime.UtcNow);
+        }
+
+        public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval, DateTime evaluationTime)
+        {
             int period = _configuration.GetValue<int>("IndicatorParameters:ATR:Period", 14);
             decimal thresholdPercent = _configuration.GetValue<decimal>("IndicatorParameters:ATR:Threshold", 3.0m) / 100m;
             decimal lowerBound = thresholdPercent / _configuration.GetValue<int>("IndicatorParameters:ATR:LowerBoundFactor", 10);
@@ -28,10 +33,11 @@ namespace AionCoreBot.Application.Analyzers
             {
                 Symbol = symbol,
                 Interval = interval,
-                EvaluationTime = DateTime.UtcNow,
+                EvaluationTime = evaluationTime,
                 IndicatorValues = new Dictionary<string, decimal>(),
                 SignalDescriptions = new List<string>(),
-                ProposedAction = TradeAction.Hold, // Default
+                ProposedAction = TradeAction.Hold,
+                AnalyzerName = GetType().Name
             };
 
             if (atr != null && atr.ClosePrice > 0)
