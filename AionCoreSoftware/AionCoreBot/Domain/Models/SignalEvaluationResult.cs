@@ -20,17 +20,15 @@ namespace AionCoreBot.Domain.Models
 
         public TradeAction ProposedAction { get; set; } = TradeAction.Hold;
 
-        // Optionele toelichting of reden voor deze beslissing
+        public bool? WasContradicted { get; set; } = null;
+
         public string? Reason { get; set; }
 
-        // Indicatorwaarden die gebruikt zijn voor deze evaluatie
-        // Je kunt hier bijvoorbeeld per indicator naam en waarde opslaan
         public Dictionary<string, decimal> IndicatorValues { get; set; } = new();
 
-        // Optionele score of confidence van deze evaluatie (bijv. 0-100%)
         public decimal? ConfidenceScore { get; set; }
 
-        // Eventueel een lijst van relevante signalen (bv. "EMA crossover", "RSI oversold")
         public List<string>? SignalDescriptions { get; set; }
+
     }
 }

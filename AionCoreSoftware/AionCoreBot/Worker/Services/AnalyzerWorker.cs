@@ -1,4 +1,4 @@
-﻿using AionCoreBot.Application.Interfaces;
+﻿using AionCoreBot.Application.Interfaces.IIndicators;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Worker.Interfaces;
 

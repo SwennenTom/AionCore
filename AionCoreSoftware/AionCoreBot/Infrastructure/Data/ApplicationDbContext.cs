@@ -2,8 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using System.Collections.Generic;
-using System.Reflection.Emit;
 using System.Text.Json;
 
 namespace AionCoreBot.Infrastructure.Data
@@ -23,22 +21,20 @@ namespace AionCoreBot.Infrastructure.Data
         public DbSet<ATRResult> ATRResults { get; set; }
         public DbSet<EMAResult> EMAResults { get; set; }
         public DbSet<LogEntry> Logs { get; set; }
-
-        // Let op: Candle is geen entiteit met een Id, we moeten dit expliciet configureren.
         public DbSet<Candle> Candles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Complexe types of keys
+            // --- Primaire sleutels ---
             modelBuilder.Entity<TradeDecision>()
                 .HasKey(td => new { td.Symbol, td.Interval, td.DecisionTime });
 
             modelBuilder.Entity<Candle>()
                 .HasKey(c => new { c.Symbol, c.Interval, c.OpenTime });
 
-            // --- Fix for IndicatorValues (Dictionary<string, decimal>) ---
+            // --- SignalEvaluationResult: IndicatorValues (Dictionary<string, decimal>) ---
             var dictConverter = new ValueConverter<Dictionary<string, decimal>, string>(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
                 v => JsonSerializer.Deserialize<Dictionary<string, decimal>>(v, (JsonSerializerOptions?)null) ?? new());
@@ -53,7 +49,7 @@ namespace AionCoreBot.Infrastructure.Data
                 .HasConversion(dictConverter)
                 .Metadata.SetValueComparer(dictComparer);
 
-            // --- Fix for SignalDescriptions (List<string>) ---
+            // --- SignalEvaluationResult: SignalDescriptions (List<string>) ---
             var listConverter = new ValueConverter<List<string>, string>(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
                 v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new());
@@ -68,7 +64,7 @@ namespace AionCoreBot.Infrastructure.Data
                 .HasConversion(listConverter)
                 .Metadata.SetValueComparer(listComparer);
 
-            // LogEntry string length constraints (optioneel)
+            // --- LogEntry constraints (optioneel) ---
             modelBuilder.Entity<LogEntry>()
                 .Property(l => l.SourceComponent)
                 .HasMaxLength(255);
@@ -77,6 +73,5 @@ namespace AionCoreBot.Infrastructure.Data
                 .Property(l => l.ExceptionDetails)
                 .HasMaxLength(2000);
         }
-
     }
 }

@@ -1,6 +1,8 @@
 ﻿using AionCoreBot.Application.Interfaces;
+using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
+using AionCoreBot.Infrastructure.Interfaces;
 using AionCoreBot.Worker.Indicators;
 using System;
 using System.Collections.Generic;
@@ -13,10 +15,12 @@ namespace AionCoreBot.Application.Services
     public class SignalEvaluatorService : ISignalEvaluatorService
     {
         private readonly IEnumerable<IAnalyzer> _analyzers;
+        private readonly ISignalEvaluationRepository _signalRepo;
 
-        public SignalEvaluatorService(IEnumerable<IAnalyzer> analyzers)
+        public SignalEvaluatorService(IEnumerable<IAnalyzer> analyzers, ISignalEvaluationRepository signalrepo)
         {
             _analyzers = analyzers;
+            _signalRepo = signalrepo;
         }
 
         public async Task<List<SignalEvaluationResult>> EvaluateSignalsAsync(string symbol, string interval)
@@ -30,10 +34,12 @@ namespace AionCoreBot.Application.Services
                 partial.Interval = interval;
                 partial.EvaluationTime = DateTime.UtcNow;
                 partial.AnalyzerName = analyzer.GetType().Name;
-                partial.ConfidenceScore ??=1.0m;
+                partial.ConfidenceScore ??=0.0m;
 
                 results.Add(partial);
             }
+            await _signalRepo.AddRangeAsync(results);
+            await _signalRepo.SaveChangesAsync();
 
             return results;
         }

@@ -1,4 +1,4 @@
-﻿using AionCoreBot.Application.Interfaces;
+﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
 using Microsoft.Extensions.Configuration;
@@ -43,12 +43,32 @@ namespace AionCoreBot.Application.Analyzers
                     result.ProposedAction = TradeAction.Buy;
                     result.SignalDescriptions.Add("RSI oversold");
                     result.Reason = $"RSI under {oversold}";
+
+                    // Hoe lager de RSI, hoe sterker het signaal
+                    var distance = oversold - rsi.Value;
+                    var normalized = Math.Min(distance / oversold, 1m);
+                    result.ConfidenceScore = 0.6m + 0.4m * normalized;
                 }
                 else if (rsi.Value > overbought)
                 {
                     result.ProposedAction = TradeAction.Sell;
                     result.SignalDescriptions.Add("RSI overbought");
                     result.Reason = $"RSI over {overbought}";
+
+                    // Hoe hoger de RSI, hoe sterker het signaal
+                    var distance = rsi.Value - overbought;
+                    var normalized = Math.Min(distance / (100 - overbought), 1m);
+                    result.ConfidenceScore = 0.6m + 0.4m * normalized;
+                }
+                else
+                {
+                    // Neutrale RSI → confidence daalt naarmate dichter bij 50
+                    result.Reason = "RSI in neutral zone";
+                    result.SignalDescriptions.Add("RSI neutral");
+
+                    var distanceToCenter = Math.Abs(rsi.Value - 50);
+                    var normalized = distanceToCenter / 20m; // max afstand = 20 (van 50 naar 70/30)
+                    result.ConfidenceScore = 0.4m * normalized;
                 }
             }
 
