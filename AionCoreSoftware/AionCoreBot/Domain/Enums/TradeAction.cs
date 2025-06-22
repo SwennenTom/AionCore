@@ -21,6 +21,8 @@ namespace AionCoreBot.Domain.Enums
         StopBuy,
         StopSell,
         TrailStop,
-        Liquidate
+        Liquidate,
+        NoBuy,
+        OkToBuy
     }
 }

@@ -47,7 +47,7 @@ namespace AionCoreBot.Worker.Indicators
 
             if (previousEma == null)
                 throw new InvalidOperationException("EMA kon niet worden berekend");
-            previousEma = Math.Round(previousEma.Value, 2);
+            //previousEma = Math.Round(previousEma.Value, 10);
 
             // 4. Resultaat aanmaken
             var result = new EMAResult
