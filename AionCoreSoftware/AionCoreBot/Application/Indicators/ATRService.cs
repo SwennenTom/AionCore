@@ -24,7 +24,6 @@ namespace AionCoreBot.Application.Indicators
 
         public async Task<ATRResult> CalculateAsync(string symbol, string interval, int period, DateTime startTime, DateTime endTime)
         {
-            // Candles ophalen
             var candles = await _candleRepository.GetCandlesAsync(symbol, interval, startTime, endTime);
 
             if (candles == null || candles.Count() < period + 1)
@@ -32,7 +31,6 @@ namespace AionCoreBot.Application.Indicators
 
             var ordered = candles.OrderBy(c => c.OpenTime).ToList();
 
-            // True Ranges berekenen
             var trueRanges = new List<decimal>();
 
             for (int i = 1; i < ordered.Count; i++)
@@ -48,11 +46,9 @@ namespace AionCoreBot.Application.Indicators
                 trueRanges.Add(tr);
             }
 
-            // Eerste ATR is SMA van de eerste `period` true ranges
             decimal firstAtr = trueRanges.Take(period).Average();
             decimal atr = firstAtr;
 
-            // Daarna Wilder’s smoothing
             for (int i = period; i < trueRanges.Count; i++)
             {
                 atr = (atr * (period - 1) + trueRanges[i]) / period;
@@ -67,7 +63,6 @@ namespace AionCoreBot.Application.Indicators
                 Timestamp = ordered.Last().CloseTime
             };
 
-            // Opslaan
             await _atrRepository.AddAsync(result);
             await _atrRepository.SaveChangesAsync();
 
@@ -106,22 +101,5 @@ namespace AionCoreBot.Application.Indicators
 
             Console.WriteLine("[ATR] ATR calculation finished for all symbols and intervals.");
         }
-
-
-
-        private decimal CalculateTrueRange(IList<Candle> candles, int i)
-        {
-            var current = candles[i];
-            if (i == 0) return current.HighPrice - current.LowPrice;
-
-            var previousClose = candles[i - 1].ClosePrice;
-
-            var highLow = current.HighPrice - current.LowPrice;
-            var highPrevClose = Math.Abs(current.HighPrice - previousClose);
-            var lowPrevClose = Math.Abs(current.LowPrice - previousClose);
-
-            return Math.Max(highLow, Math.Max(highPrevClose, lowPrevClose));
-        }
-
     }
 }

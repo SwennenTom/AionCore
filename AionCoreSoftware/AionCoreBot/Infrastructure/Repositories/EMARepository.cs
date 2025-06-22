@@ -65,5 +65,12 @@ namespace AionCoreBot.Infrastructure.Repositories
         {
             _context.EMAResults.Update(entity);
         }
+        public async Task<EMAResult?> GetLatestBeforeAsync(string symbol, string interval, int period, DateTime time)
+        {
+            return await _context.EMAResults
+                .Where(r => r.Symbol == symbol && r.Interval == interval && r.Period == period && r.Timestamp <= time)
+                .OrderByDescending(r => r.Timestamp)
+                .FirstOrDefaultAsync();
+        }
     }
 }

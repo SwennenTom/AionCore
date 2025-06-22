@@ -20,5 +20,7 @@ namespace AionCoreBot.Infrastructure.Interfaces
         //void Update(T entity);
         Task ClearAllAsync();
         Task SaveChangesAsync();
+        Task<T?> GetLatestBeforeAsync(string symbol, string interval, int period, DateTime time);
+
     }
 }

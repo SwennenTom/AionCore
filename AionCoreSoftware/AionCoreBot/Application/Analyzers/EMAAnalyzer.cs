@@ -14,9 +14,13 @@ namespace AionCoreBot.Application.Analyzers
         {
             _emaService = emaService;
             _configuration = configuration;
+        }                
+        public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval)
+        {
+            return await AnalyzeAsync(symbol, interval, DateTime.UtcNow);
         }
 
-        public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval)
+        public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval, DateTime evaluationtime)
         {
             int shortPeriod = _configuration.GetValue<int>("IndicatorParameters:EMA:ShortPeriod", 7);
             int mediumPeriod = _configuration.GetValue<int>("IndicatorParameters:EMA:MediumPeriod", 21);
@@ -25,10 +29,11 @@ namespace AionCoreBot.Application.Analyzers
             {
                 Symbol = symbol,
                 Interval = interval,
-                EvaluationTime = DateTime.UtcNow,
+                EvaluationTime = evaluationtime,
                 ProposedAction = TradeAction.Hold,
                 IndicatorValues = new(),
-                SignalDescriptions = new()
+                SignalDescriptions = new(),
+                AnalyzerName = GetType().Name
             };
 
             var emaShort = await _emaService.GetLatestAsync(symbol, interval, shortPeriod);

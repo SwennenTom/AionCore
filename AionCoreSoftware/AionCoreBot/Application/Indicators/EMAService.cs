@@ -20,16 +20,13 @@ namespace AionCoreBot.Application.Indicators
 
         public async Task<EMAResult> CalculateAsync(string symbol, string interval, int period, DateTime startTime, DateTime endTime)
         {
-            // 1. Candles ophalen
             var candles = await _candleRepository.GetCandlesAsync(symbol, interval, startTime, endTime);
 
             if (candles == null || !candles.Any())
                 throw new InvalidOperationException("Geen candles beschikbaar voor EMA-berekening");
 
-            // 2. Sorteren op tijd
             var ordered = candles.OrderBy(c => c.OpenTime).ToList();
 
-            // 3. EMA berekenen
             double multiplier = 2.0 / (period + 1);
             double? previousEma = null;
 
@@ -47,9 +44,7 @@ namespace AionCoreBot.Application.Indicators
 
             if (previousEma == null)
                 throw new InvalidOperationException("EMA kon niet worden berekend");
-            //previousEma = Math.Round(previousEma.Value, 10);
-
-            // 4. Resultaat aanmaken
+            
             var result = new EMAResult
             {
                 Symbol = symbol,

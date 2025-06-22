@@ -10,5 +10,6 @@ namespace AionCoreBot.Application.Interfaces.IAnalyzers
     public interface IAnalyzer
     {
         Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval);
+        Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval, DateTime evaluationTime);
     }
 }

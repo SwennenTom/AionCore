@@ -18,6 +18,11 @@ namespace AionCoreBot.Application.Analyzers
 
         public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval)
         {
+            return await AnalyzeAsync(symbol, interval, DateTime.UtcNow);
+        }
+
+        public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval, DateTime evaluationtime)
+        {
             int period = _configuration.GetValue<int>("IndicatorParameters:RSI:Period", 14);
             int overbought = _configuration.GetValue<int>("IndicatorParameters:RSI:OverboughtThreshold", 70);
             int oversold = _configuration.GetValue<int>("IndicatorParameters:RSI:OversoldThreshold", 30);
@@ -28,10 +33,11 @@ namespace AionCoreBot.Application.Analyzers
             {
                 Symbol = symbol,
                 Interval = interval,
-                EvaluationTime = DateTime.UtcNow,
+                EvaluationTime = evaluationtime,
                 IndicatorValues = new Dictionary<string, decimal>(),
                 SignalDescriptions = new List<string>(),
-                ProposedAction = TradeAction.Hold
+                ProposedAction = TradeAction.Hold,
+                AnalyzerName = GetType().Name
             };
 
             if (rsi != null)
