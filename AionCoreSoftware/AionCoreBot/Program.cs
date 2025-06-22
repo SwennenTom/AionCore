@@ -4,7 +4,6 @@ using AionCoreBot.Application.Interfaces;
 using AionCoreBot.Application.Interfaces.IIndicators;
 using AionCoreBot.Application.Services;
 using AionCoreBot.Domain.Models;
-using AionCoreBot.Infrastructure.Clients;
 using AionCoreBot.Infrastructure.Comms.Clients;
 using AionCoreBot.Infrastructure.Comms.Websocket;
 using AionCoreBot.Infrastructure.Data;
