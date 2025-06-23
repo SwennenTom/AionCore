@@ -50,7 +50,7 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
                 var timeLeft = _timeSynchronizer.GetTimeUntilNextMinuteCandle();
                 int secondsRemaining = (int)timeLeft.TotalSeconds;
 
-                Console.Write($"\r[WS] Next 1m candle in: {secondsRemaining:00} sec   ");
+                //Console.Write($"\r[WS] Next 1m candle in: {secondsRemaining:00} sec   ");
 
                 await Task.Delay(1000, token);
             }

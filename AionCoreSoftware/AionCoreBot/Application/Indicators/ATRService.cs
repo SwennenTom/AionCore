@@ -60,7 +60,8 @@ namespace AionCoreBot.Application.Indicators
                 Interval = interval,
                 Period = period,
                 Value = atr,
-                Timestamp = ordered.Last().CloseTime
+                Timestamp = ordered.Last().CloseTime,
+                ClosePrice = ordered.Last().ClosePrice
             };
 
             await _atrRepository.AddAsync(result);
@@ -81,25 +82,72 @@ namespace AionCoreBot.Application.Indicators
             {
                 foreach (var interval in intervals)
                 {
+                    var candles = await _candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
+                    var ordered = candles.OrderBy(c => c.OpenTime).ToList();
+
+                    if (ordered.Count < 20) // minimaal aantal candles
+                    {
+                        Console.WriteLine($"[ATR] Skipping {symbol} - {interval}: onvoldoende candles.");
+                        continue;
+                    }
+
                     foreach (var period in periods)
                     {
-                        DateTime from = DateTime.UtcNow.AddDays(-14);
-                        DateTime to = DateTime.UtcNow;
+                        Console.WriteLine($"[ATR] Calculating history for {symbol} - {interval} - {period}");
 
-                        try
+                        var trueRanges = new List<decimal>();
+
+                        for (int i = 1; i < ordered.Count; i++)
                         {
-                            await CalculateAsync(symbol, interval, period, from, to);
-                            Console.WriteLine($"[ATR] ✅ Calculated {symbol} - {interval} - {period}");
+                            var current = ordered[i];
+                            var previous = ordered[i - 1];
+
+                            decimal highLow = current.HighPrice - current.LowPrice;
+                            decimal highClose = Math.Abs(current.HighPrice - previous.ClosePrice);
+                            decimal lowClose = Math.Abs(current.LowPrice - previous.ClosePrice);
+
+                            decimal tr = Math.Max(highLow, Math.Max(highClose, lowClose));
+                            trueRanges.Add(tr);
                         }
-                        catch (Exception ex)
+
+                        if (trueRanges.Count < period)
                         {
-                            Console.WriteLine($"[ATR] ❌ Failed {symbol} - {interval} - {period}: {ex.Message}");
+                            Console.WriteLine($"[ATR] Not enough data to initialize ATR for {symbol} - {interval} - {period}");
+                            continue;
                         }
+
+                        decimal atr = trueRanges.Take(period).Average(); // init
+                        int atrStartIndex = period;
+
+                        for (int i = atrStartIndex; i < trueRanges.Count; i++)
+                        {
+                            atr = (atr * (period - 1) + trueRanges[i]) / period;
+
+                            var atrResult = new ATRResult
+                            {
+                                Symbol = symbol,
+                                Interval = interval,
+                                Period = period,
+                                Value = atr,
+                                Timestamp = ordered[i + 1].CloseTime, // i+1 want TR begint op index 1
+                                ClosePrice = ordered[i + 1].ClosePrice
+                            };
+
+                            await _atrRepository.AddAsync(atrResult);
+
+                            if (i % 50 == 0)
+                                await _atrRepository.SaveChangesAsync();
+                        }
+
+                        await _atrRepository.SaveChangesAsync();
+                        Console.WriteLine($"[ATR] ✅ Finished {symbol} - {interval} - {period}");
                     }
                 }
             }
 
-            Console.WriteLine("[ATR] ATR calculation finished for all symbols and intervals.");
+            Console.WriteLine("[ATR] ✅ ATR calculation finished for all symbols and intervals.");
         }
+
+
     }
 }

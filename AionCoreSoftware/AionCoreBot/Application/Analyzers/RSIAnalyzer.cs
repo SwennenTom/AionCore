@@ -27,7 +27,7 @@ namespace AionCoreBot.Application.Analyzers
             int overbought = _configuration.GetValue<int>("IndicatorParameters:RSI:OverboughtThreshold", 70);
             int oversold = _configuration.GetValue<int>("IndicatorParameters:RSI:OversoldThreshold", 30);
 
-            var rsi = await _rsiService.GetLatestAsync(symbol, interval, period);
+            var rsi = await _rsiService.GetAsync(symbol, interval,evaluationtime, period);
 
             var result = new SignalEvaluationResult
             {
