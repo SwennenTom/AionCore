@@ -27,7 +27,7 @@ namespace AionCoreBot.Application.Analyzers
             decimal thresholdPercent = _configuration.GetValue<decimal>("IndicatorParameters:ATR:Threshold", 3.0m) / 100m;
             decimal lowerBound = thresholdPercent / _configuration.GetValue<int>("IndicatorParameters:ATR:LowerBoundFactor", 10);
 
-            var atr = await _atrService.GetLatestAsync(symbol, interval, period);
+            var atr = await _atrService.GetAsync(symbol, interval, evaluationTime, period);
 
             var result = new SignalEvaluationResult
             {
@@ -36,17 +36,15 @@ namespace AionCoreBot.Application.Analyzers
                 EvaluationTime = evaluationTime,
                 IndicatorValues = new Dictionary<string, decimal>(),
                 SignalDescriptions = new List<string>(),
-                ProposedAction = TradeAction.Hold,
-                AnalyzerName = GetType().Name
+                ProposedAction = TradeAction.Hold
             };
 
             if (atr != null && atr.ClosePrice > 0)
             {
-                result.IndicatorValues[$"ATR{period}"] = atr.Value;
-
                 var percentage = atr.Value / atr.ClosePrice;
-
                 decimal maxDistance = thresholdPercent - lowerBound;
+
+                result.IndicatorValues[$"ATR{period}"] = atr.Value;
 
                 if (percentage > thresholdPercent)
                 {
@@ -78,10 +76,11 @@ namespace AionCoreBot.Application.Analyzers
                     var normalized = distanceFromEdges / (maxDistance / 2m);
                     result.ConfidenceScore = 0.6m + 0.4m * normalized;
                 }
-
             }
+
             return result;
         }
+
 
     }
 }

@@ -95,7 +95,7 @@ namespace AionCoreBot.Application.Indicators
                     var candles = await _candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
                     var candlesList = candles.OrderBy(c => c.OpenTime).ToList();
 
-                    if (candlesList.Count < 15) // 14 + 1
+                    if (candlesList.Count < 15)
                     {
                         Console.WriteLine($"[RSI] Not enough candles for {symbol} - {interval}");
                         continue;

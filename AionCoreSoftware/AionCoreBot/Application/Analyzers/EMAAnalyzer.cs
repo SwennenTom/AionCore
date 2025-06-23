@@ -36,8 +36,8 @@ namespace AionCoreBot.Application.Analyzers
                 AnalyzerName = GetType().Name
             };
 
-            var emaShort = await _emaService.GetLatestAsync(symbol, interval, shortPeriod);
-            var emaMedium = await _emaService.GetLatestAsync(symbol, interval, mediumPeriod);
+            var emaShort = await _emaService.GetAsync(symbol, interval,evaluationtime, shortPeriod);
+            var emaMedium = await _emaService.GetAsync(symbol, interval, evaluationtime, mediumPeriod);
 
             if (emaShort != null && emaMedium != null)
             {

@@ -51,7 +51,7 @@ namespace AionCoreBot.Application.Services
             {
                 foreach (var analyzer in _analyzers)
                 {
-                    var result = await analyzer.AnalyzeAsync(symbol, interval, timestamp); // timestamp-aware!
+                    var result = await analyzer.AnalyzeAsync(symbol, interval, timestamp);
                     result.Symbol = symbol;
                     result.Interval = interval;
                     result.EvaluationTime = timestamp;
@@ -61,9 +61,12 @@ namespace AionCoreBot.Application.Services
                     results.Add(result);
                 }
             }
+            Console.WriteLine($"[INIT] {results.Count} signalen geëvalueerd voor {symbol} ({interval})");
 
             await _signalRepo.AddRangeAsync(results);
             await _signalRepo.SaveChangesAsync();
+            Console.WriteLine("[DEBUG] SignalEvaluationResults saved!");
+
 
             return results;
         }
