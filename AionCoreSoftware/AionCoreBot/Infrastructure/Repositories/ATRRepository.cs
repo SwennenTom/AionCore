@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System;
 
 namespace AionCoreBot.Infrastructure.Repositories
 {
@@ -57,11 +58,11 @@ namespace AionCoreBot.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<ATRResult?> GetLatestBySymbolIntervalPeriodAsync(string symbol, string interval, int period)
+        public async Task<ATRResult?> GetLatestBySymbolIntervalPeriodAsync(string symbol, string interval, DateTime timestamp, int period)
         {
             return await _context.ATRResults
-                .Where(e => e.Symbol == symbol && e.Interval == interval && e.Period == period)
-                .OrderByDescending(e => e.Timestamp)
+                .Where(r => r.Symbol == symbol && r.Interval == interval && r.Period == period && r.Timestamp == timestamp)
+                .OrderByDescending(r => r.Timestamp)
                 .FirstOrDefaultAsync();
         }
 
@@ -73,6 +74,34 @@ namespace AionCoreBot.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<ATRResult> GetLatestBySymbolIntervalPeriodAsync(string symbol, string interval, int period)
+        {
+            return await _context.ATRResults
+                .Where(r => r.Symbol == symbol && r.Interval == interval && r.Period == period)
+                .OrderByDescending(r => r.Timestamp)
+                .FirstAsync(); // Let it throw if nothing found — signals should exist
+        }
 
+        public async Task<ATRResult?> GetBySymbolIntervalTimestampPeriodAsync(string symbol, string interval, DateTime timestamp, int period)
+        {
+            return await _context.ATRResults
+                .FirstOrDefaultAsync(r =>
+                    r.Symbol == symbol &&
+                    r.Interval == interval &&
+                    r.Timestamp == timestamp &&
+                    r.Period == period);
+        }
+
+        public async Task<IEnumerable<ATRResult>> GetByPeriodAndDateRangeAsync(string symbol, string interval, int period, DateTime from, DateTime to)
+        {
+            return await _context.ATRResults
+                .Where(r => r.Symbol == symbol &&
+                            r.Interval == interval &&
+                            r.Period == period &&
+                            r.Timestamp >= from &&
+                            r.Timestamp <= to)
+                .OrderBy(r => r.Timestamp)
+                .ToListAsync();
+        }
     }
 }

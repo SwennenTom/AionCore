@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AionCoreBot.Infrastructure.Repositories
 {
-    internal class EMARepository : IIndicatorRepository<EMAResult>
+    public class EMARepository : IIndicatorRepository<EMAResult>
     {
         private readonly ApplicationDbContext _context;
 
@@ -65,6 +65,7 @@ namespace AionCoreBot.Infrastructure.Repositories
         {
             _context.EMAResults.Update(entity);
         }
+
         public async Task<EMAResult?> GetLatestBeforeAsync(string symbol, string interval, int period, DateTime time)
         {
             return await _context.EMAResults
@@ -72,5 +73,28 @@ namespace AionCoreBot.Infrastructure.Repositories
                 .OrderByDescending(r => r.Timestamp)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<EMAResult?> GetBySymbolIntervalTimestampPeriodAsync(string symbol, string interval, DateTime timestamp, int period)
+        {
+            return await _context.EMAResults
+                .FirstOrDefaultAsync(r =>
+                    r.Symbol == symbol &&
+                    r.Interval == interval &&
+                    r.Timestamp == timestamp &&
+                    r.Period == period);
+        }
+
+        public async Task<IEnumerable<EMAResult>> GetByPeriodAndDateRangeAsync(string symbol, string interval, int period, DateTime from, DateTime to)
+        {
+            return await _context.EMAResults
+                .Where(r => r.Symbol == symbol &&
+                            r.Interval == interval &&
+                            r.Period == period &&
+                            r.Timestamp >= from &&
+                            r.Timestamp <= to)
+                .OrderBy(r => r.Timestamp)
+                .ToListAsync();
+        }
+
     }
 }

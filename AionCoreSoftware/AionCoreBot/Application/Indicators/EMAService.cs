@@ -1,17 +1,21 @@
-﻿using AionCoreBot.Application.Interfaces.IIndicators;
+﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
 using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Indicators
 {
-    internal class EMAService : IBaseIndicatorService<EMAResult>
+    internal class EMAService : IIndicatorService<EMAResult>
     {
         private readonly ICandleRepository _candleRepository;
         private readonly IIndicatorRepository<EMAResult> _emaRepository;
         private readonly IConfiguration _configuration;
 
-        public EMAService(ICandleRepository candleRepository, IIndicatorRepository<EMAResult> emaRepository , IConfiguration configuration)
+        public EMAService(ICandleRepository candleRepository, IIndicatorRepository<EMAResult> emaRepository, IConfiguration configuration)
         {
             _candleRepository = candleRepository;
             _emaRepository = emaRepository;
@@ -34,7 +38,7 @@ namespace AionCoreBot.Application.Indicators
             {
                 if (previousEma == null)
                 {
-                    previousEma = (double)candle.ClosePrice; // startwaarde is eerste close
+                    previousEma = (double)candle.ClosePrice;
                 }
                 else
                 {
@@ -44,7 +48,7 @@ namespace AionCoreBot.Application.Indicators
 
             if (previousEma == null)
                 throw new InvalidOperationException("EMA kon niet worden berekend");
-            
+
             var result = new EMAResult
             {
                 Symbol = symbol,
@@ -130,7 +134,37 @@ namespace AionCoreBot.Application.Indicators
             Console.WriteLine("[EMA] EMA calculation finished for all symbols and intervals.");
         }
 
+        #region Pass Through Methods
+        public async Task SaveResultAsync(EMAResult result)
+        {
+            await _emaRepository.AddAsync(result);
+            await _emaRepository.SaveChangesAsync();
+        }
 
+        public async Task<EMAResult?> GetAsync(string symbol, string interval, DateTime timestamp, int period)
+        {
+            return await _emaRepository.GetBySymbolIntervalTimestampPeriodAsync(symbol, interval, timestamp, period);
+        }
 
+        public async Task<EMAResult?> GetLatestAsync(string symbol, string interval, int period)
+        {
+            return await _emaRepository.GetLatestBySymbolIntervalPeriodAsync(symbol, interval, period);
+        }
+
+        public async Task<EMAResult?> GetLatestBeforeAsync(string symbol, string interval, int period, DateTime time)
+        {
+            return await _emaRepository.GetLatestBeforeAsync(symbol, interval, period, time);
+        }
+
+        public async Task<IEnumerable<EMAResult>> GetHistoryAsync(string symbol, string interval, int period, DateTime from, DateTime to)
+        {
+            return await _emaRepository.GetByPeriodAndDateRangeAsync(symbol, interval, period, from, to);
+        }
+
+        public async Task ClearAllAsync()
+        {
+            await _emaRepository.ClearAllAsync();
+        }
+        #endregion
     }
 }

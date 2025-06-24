@@ -1,4 +1,4 @@
-﻿using AionCoreBot.Application.Interfaces.IIndicators;
+﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Indicators
 {
-    internal class ATRService : IBaseIndicatorService<ATRResult>
+    internal class ATRService : IIndicatorService<ATRResult>
     {
         private readonly ICandleRepository _candleRepository;
         private readonly IIndicatorRepository<ATRResult> _atrRepository;
@@ -25,49 +25,18 @@ namespace AionCoreBot.Application.Indicators
         public async Task<ATRResult> CalculateAsync(string symbol, string interval, int period, DateTime startTime, DateTime endTime)
         {
             var candles = await _candleRepository.GetCandlesAsync(symbol, interval, startTime, endTime);
-
-            if (candles == null || candles.Count() < period + 1)
-                throw new InvalidOperationException("Niet genoeg candles beschikbaar voor ATR-berekening.");
-
             var ordered = candles.OrderBy(c => c.OpenTime).ToList();
 
-            var trueRanges = new List<decimal>();
+            var results = ComputeATRSeries(symbol, interval, ordered, period);
 
-            for (int i = 1; i < ordered.Count; i++)
+            var latest = results.LastOrDefault();
+            if (latest != null)
             {
-                var current = ordered[i];
-                var previous = ordered[i - 1];
-
-                decimal highLow = current.HighPrice - current.LowPrice;
-                decimal highClose = Math.Abs(current.HighPrice - previous.ClosePrice);
-                decimal lowClose = Math.Abs(current.LowPrice - previous.ClosePrice);
-
-                decimal tr = Math.Max(highLow, Math.Max(highClose, lowClose));
-                trueRanges.Add(tr);
+                await _atrRepository.AddAsync(latest);
+                await _atrRepository.SaveChangesAsync();
             }
 
-            decimal firstAtr = trueRanges.Take(period).Average();
-            decimal atr = firstAtr;
-
-            for (int i = period; i < trueRanges.Count; i++)
-            {
-                atr = (atr * (period - 1) + trueRanges[i]) / period;
-            }
-
-            var result = new ATRResult
-            {
-                Symbol = symbol,
-                Interval = interval,
-                Period = period,
-                Value = atr,
-                Timestamp = ordered.Last().CloseTime,
-                ClosePrice = ordered.Last().ClosePrice
-            };
-
-            await _atrRepository.AddAsync(result);
-            await _atrRepository.SaveChangesAsync();
-
-            return result;
+            return latest!;
         }
 
         public async Task CalcAllAsync()
@@ -85,9 +54,9 @@ namespace AionCoreBot.Application.Indicators
                     var candles = await _candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
                     var ordered = candles.OrderBy(c => c.OpenTime).ToList();
 
-                    if (ordered.Count < 20) // minimaal aantal candles
+                    if (ordered.Count < 20)
                     {
-                        Console.WriteLine($"[ATR] Skipping {symbol} - {interval}: onvoldoende candles.");
+                        Console.WriteLine($"[ATR] Skipping {symbol} - {interval}: insufficient candles.");
                         continue;
                     }
 
@@ -95,59 +64,100 @@ namespace AionCoreBot.Application.Indicators
                     {
                         Console.WriteLine($"[ATR] Calculating history for {symbol} - {interval} - {period}");
 
-                        var trueRanges = new List<decimal>();
-
-                        for (int i = 1; i < ordered.Count; i++)
-                        {
-                            var current = ordered[i];
-                            var previous = ordered[i - 1];
-
-                            decimal highLow = current.HighPrice - current.LowPrice;
-                            decimal highClose = Math.Abs(current.HighPrice - previous.ClosePrice);
-                            decimal lowClose = Math.Abs(current.LowPrice - previous.ClosePrice);
-
-                            decimal tr = Math.Max(highLow, Math.Max(highClose, lowClose));
-                            trueRanges.Add(tr);
-                        }
-
-                        if (trueRanges.Count < period)
+                        var results = ComputeATRSeries(symbol, interval, ordered, period);
+                        if (results.Count == 0)
                         {
                             Console.WriteLine($"[ATR] Not enough data to initialize ATR for {symbol} - {interval} - {period}");
                             continue;
                         }
 
-                        decimal atr = trueRanges.Take(period).Average(); // init
-                        int atrStartIndex = period;
-
-                        for (int i = atrStartIndex; i < trueRanges.Count; i++)
+                        foreach (var atrResult in results)
                         {
-                            atr = (atr * (period - 1) + trueRanges[i]) / period;
-
-                            var atrResult = new ATRResult
-                            {
-                                Symbol = symbol,
-                                Interval = interval,
-                                Period = period,
-                                Value = atr,
-                                Timestamp = ordered[i + 1].CloseTime, // i+1 want TR begint op index 1
-                                ClosePrice = ordered[i + 1].ClosePrice
-                            };
-
                             await _atrRepository.AddAsync(atrResult);
-
-                            if (i % 50 == 0)
-                                await _atrRepository.SaveChangesAsync();
                         }
 
                         await _atrRepository.SaveChangesAsync();
-                        Console.WriteLine($"[ATR] ✅ Finished {symbol} - {interval} - {period}");
+                        Console.WriteLine($"[ATR] Finished {symbol} - {interval} - {period}");
                     }
                 }
             }
 
-            Console.WriteLine("[ATR] ✅ ATR calculation finished for all symbols and intervals.");
+            Console.WriteLine("[ATR] ATR calculation finished for all symbols and intervals.");
         }
 
+        private List<ATRResult> ComputeATRSeries(string symbol, string interval, List<Candle> ordered, int period)
+        {
+            var results = new List<ATRResult>();
+            if (ordered.Count < period + 1) return results;
 
+            var trueRanges = new List<decimal>();
+
+            for (int i = 1; i < ordered.Count; i++)
+            {
+                var current = ordered[i];
+                var previous = ordered[i - 1];
+
+                decimal highLow = current.HighPrice - current.LowPrice;
+                decimal highClose = Math.Abs(current.HighPrice - previous.ClosePrice);
+                decimal lowClose = Math.Abs(current.LowPrice - previous.ClosePrice);
+
+                decimal tr = Math.Max(highLow, Math.Max(highClose, lowClose));
+                trueRanges.Add(tr);
+            }
+
+            if (trueRanges.Count < period) return results;
+
+            decimal atr = trueRanges.Take(period).Average();
+
+            for (int i = period; i < trueRanges.Count; i++)
+            {
+                atr = (atr * (period - 1) + trueRanges[i]) / period;
+
+                results.Add(new ATRResult
+                {
+                    Symbol = symbol,
+                    Interval = interval,
+                    Period = period,
+                    Value = atr,
+                    Timestamp = ordered[i + 1].CloseTime,
+                    ClosePrice = ordered[i + 1].ClosePrice
+                });
+            }
+
+            return results;
+        }
+
+        #region PassThrough Methods
+        public async Task SaveResultAsync(ATRResult result)
+        {
+            await _atrRepository.AddAsync(result);
+            await _atrRepository.SaveChangesAsync();
+        }
+
+        public async Task<ATRResult?> GetAsync(string symbol, string interval, DateTime timestamp, int period)
+        {
+            return await _atrRepository.GetBySymbolIntervalTimestampPeriodAsync(symbol, interval, timestamp, period);
+        }
+
+        public async Task<ATRResult?> GetLatestAsync(string symbol, string interval, int period)
+        {
+            return await _atrRepository.GetLatestBySymbolIntervalPeriodAsync(symbol, interval, period);
+        }
+
+        public async Task<ATRResult?> GetLatestBeforeAsync(string symbol, string interval, int period, DateTime time)
+        {
+            return await _atrRepository.GetLatestBeforeAsync(symbol, interval, period, time);
+        }
+
+        public async Task<IEnumerable<ATRResult>> GetHistoryAsync(string symbol, string interval, int period, DateTime from, DateTime to)
+        {
+            return await _atrRepository.GetByPeriodAndDateRangeAsync(symbol, interval, period, from, to);
+        }
+
+        public async Task ClearAllAsync()
+        {
+            await _atrRepository.ClearAllAsync();
+        }
+        #endregion
     }
 }

@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AionCoreBot.Infrastructure.Repositories
 {
-    internal class RSIRepository : IIndicatorRepository<RSIResult>
+    public class RSIRepository : IIndicatorRepository<RSIResult>
     {
         private readonly ApplicationDbContext _context;
 
@@ -56,7 +56,6 @@ namespace AionCoreBot.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
@@ -66,12 +65,35 @@ namespace AionCoreBot.Infrastructure.Repositories
         {
             _context.RSIResults.Update(entity);
         }
+
         public async Task<RSIResult?> GetLatestBeforeAsync(string symbol, string interval, int period, DateTime time)
         {
             return await _context.RSIResults
                 .Where(r => r.Symbol == symbol && r.Interval == interval && r.Period == period && r.Timestamp <= time)
                 .OrderByDescending(r => r.Timestamp)
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task<RSIResult?> GetBySymbolIntervalTimestampPeriodAsync(string symbol, string interval, DateTime timestamp, int period)
+        {
+            return await _context.RSIResults
+                .FirstOrDefaultAsync(r =>
+                    r.Symbol == symbol &&
+                    r.Interval == interval &&
+                    r.Timestamp == timestamp &&
+                    r.Period == period);
+        }
+
+        public async Task<IEnumerable<RSIResult>> GetByPeriodAndDateRangeAsync(string symbol, string interval, int period, DateTime from, DateTime to)
+        {
+            return await _context.RSIResults
+                .Where(r => r.Symbol == symbol &&
+                            r.Interval == interval &&
+                            r.Period == period &&
+                            r.Timestamp >= from &&
+                            r.Timestamp <= to)
+                .OrderBy(r => r.Timestamp)
+                .ToListAsync();
         }
     }
 }
