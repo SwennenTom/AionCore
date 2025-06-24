@@ -1,4 +1,4 @@
-﻿using AionCoreBot.Application.Interfaces.IIndicators;
+﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Worker.Interfaces;
 
@@ -6,14 +6,14 @@ namespace AionCoreBot.Worker.Services
 {
     public class AnalyzerWorker : IAnalyzerWorker
     {
-        private readonly IBaseIndicatorService<EMAResult> _emaService;
-        private readonly IBaseIndicatorService<ATRResult> _atrService;
-        private readonly IBaseIndicatorService<RSIResult> _rsiService;
+        private readonly IIndicatorService<EMAResult> _emaService;
+        private readonly IIndicatorService<ATRResult> _atrService;
+        private readonly IIndicatorService<RSIResult> _rsiService;
 
         public AnalyzerWorker(
-            IBaseIndicatorService<EMAResult> emaService,
-            IBaseIndicatorService<ATRResult> atrService,
-            IBaseIndicatorService<RSIResult> rsiService)
+            IIndicatorService<EMAResult> emaService,
+            IIndicatorService<ATRResult> atrService,
+            IIndicatorService<RSIResult> rsiService)
         {
             _emaService = emaService;
             _atrService = atrService;

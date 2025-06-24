@@ -1,4 +1,4 @@
-﻿using AionCoreBot.Application.Interfaces.IIndicators;
+﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Indicators
 {
-    internal class RSIService : IBaseIndicatorService<RSIResult>
+    internal class RSIService : IIndicatorService<RSIResult>
     {
         private readonly ICandleRepository _candleRepository;
         private readonly IIndicatorRepository<RSIResult> _rsiRepository;
@@ -49,7 +49,6 @@ namespace AionCoreBot.Application.Indicators
             decimal rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
             decimal rsi = 100 - 100 / (1 + rs);
 
-            // Wilder's smoothing toepassen voor resterende candles
             for (int i = period + 1; i < ordered.Count; i++)
             {
                 var change = ordered[i].ClosePrice - ordered[i - 1].ClosePrice;
@@ -73,11 +72,13 @@ namespace AionCoreBot.Application.Indicators
                 Value = rsi,
                 Timestamp = ordered.Last().CloseTime
             };
+
             await _rsiRepository.AddAsync(result);
             await _rsiRepository.SaveChangesAsync();
 
             return result;
         }
+
         public async Task CalcAllAsync()
         {
             Console.WriteLine("[RSI] Starting RSI calculation for all symbols and intervals.");
@@ -103,8 +104,6 @@ namespace AionCoreBot.Application.Indicators
 
                     foreach (var rsiPeriod in rsiPeriods)
                     {
-
-
                         var lastRSI = await _rsiRepository.GetLatestBySymbolIntervalPeriodAsync(symbol, interval, rsiPeriod);
 
                         int startIndex = 0;
@@ -172,5 +171,37 @@ namespace AionCoreBot.Application.Indicators
             Console.WriteLine("[RSI] RSI calculation finished for all symbols and intervals.");
         }
 
+        #region Pass Through Methods
+        public async Task SaveResultAsync(RSIResult result)
+        {
+            await _rsiRepository.AddAsync(result);
+            await _rsiRepository.SaveChangesAsync();
+        }
+
+        public async Task<RSIResult?> GetAsync(string symbol, string interval, DateTime timestamp, int period)
+        {
+            return await _rsiRepository.GetBySymbolIntervalTimestampPeriodAsync(symbol, interval, timestamp, period);
+        }
+
+        public async Task<RSIResult?> GetLatestAsync(string symbol, string interval, int period)
+        {
+            return await _rsiRepository.GetLatestBySymbolIntervalPeriodAsync(symbol, interval, period);
+        }
+
+        public async Task<RSIResult?> GetLatestBeforeAsync(string symbol, string interval, int period, DateTime time)
+        {
+            return await _rsiRepository.GetLatestBeforeAsync(symbol, interval, period, time);
+        }
+
+        public async Task<IEnumerable<RSIResult>> GetHistoryAsync(string symbol, string interval, int period, DateTime from, DateTime to)
+        {
+            return await _rsiRepository.GetByPeriodAndDateRangeAsync(symbol, interval, period, from, to);
+        }
+
+        public async Task ClearAllAsync()
+        {
+            await _rsiRepository.ClearAllAsync();
+        }
+        #endregion
     }
 }
