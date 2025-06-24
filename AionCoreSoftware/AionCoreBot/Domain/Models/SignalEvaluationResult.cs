@@ -16,7 +16,7 @@ namespace AionCoreBot.Domain.Models
 
         public string Interval { get; set; } = string.Empty;
 
-        public DateTime EvaluationTime { get; set; } = DateTime.UtcNow;
+        public DateTime EvaluationTime { get; set; } = DateTime.UtcNow.AddTicks(-(DateTime.UtcNow.Ticks % TimeSpan.TicksPerMillisecond));
 
         public TradeAction ProposedAction { get; set; } = TradeAction.Hold;
 

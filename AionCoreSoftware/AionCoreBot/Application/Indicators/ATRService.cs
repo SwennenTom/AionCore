@@ -119,6 +119,7 @@ namespace AionCoreBot.Application.Indicators
                     Interval = interval,
                     Period = period,
                     Value = atr,
+                    ValuePct = atr / ordered[i + 1].ClosePrice,
                     Timestamp = ordered[i + 1].CloseTime,
                     ClosePrice = ordered[i + 1].ClosePrice
                 });

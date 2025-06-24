@@ -46,6 +46,9 @@ namespace AionCoreBot.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Value")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("ValuePct")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("ATRResults");

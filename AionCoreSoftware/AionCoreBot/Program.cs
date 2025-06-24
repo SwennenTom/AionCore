@@ -9,7 +9,6 @@ using AionCoreBot.Infrastructure.Data;
 using AionCoreBot.Infrastructure.Interfaces;
 using AionCoreBot.Infrastructure.Repositories;
 using AionCoreBot.Application.Interfaces.IAnalyzers;
-using AionCoreBot.Worker;
 using AionCoreBot.Worker.Interfaces;
 using AionCoreBot.Worker.Services;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +17,6 @@ using Microsoft.Extensions.Configuration;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddScoped<BotWorker>();
-builder.Services.AddTransient<CandleAggregator>();
 builder.Services.AddScoped<CandleAggregator>();
 builder.Services.AddScoped<IAnalyzerWorker, AnalyzerWorker>();
 builder.Services.AddHostedService<ScopedWorkerHostedService>();
