@@ -14,7 +14,7 @@ namespace AionCoreBot.Domain.Models
 
         public TradeAction Action { get; set; }
 
-        public DateTime DecisionTime { get; set; } = DateTime.UtcNow;
+        public DateTime DecisionTime { get; set; } = DateTime.UtcNow.AddTicks(-(DateTime.UtcNow.Ticks % TimeSpan.TicksPerMillisecond));
 
         public string? Reason { get; set; }
 
@@ -30,7 +30,7 @@ namespace AionCoreBot.Domain.Models
             Interval = interval;
             Action = action;
             Reason = reason;
-            DecisionTime = DateTime.UtcNow;
+            DecisionTime = DateTime.UtcNow.AddTicks(-(DateTime.UtcNow.Ticks % TimeSpan.TicksPerMillisecond));
         }
     }
 }

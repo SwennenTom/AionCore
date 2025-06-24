@@ -24,6 +24,7 @@ namespace AionCoreBot.Application.Analyzers
         {
             int shortPeriod = _configuration.GetValue<int>("IndicatorParameters:EMA:ShortPeriod", 7);
             int mediumPeriod = _configuration.GetValue<int>("IndicatorParameters:EMA:MediumPeriod", 21);
+            evaluationtime = evaluationtime.AddSeconds(-evaluationtime.Second).AddMilliseconds(-evaluationtime.Millisecond);
 
             var result = new SignalEvaluationResult
             {
@@ -36,10 +37,10 @@ namespace AionCoreBot.Application.Analyzers
                 AnalyzerName = GetType().Name
             };
 
-            var emaShort = await _emaService.GetAsync(symbol, interval,evaluationtime, shortPeriod);
+            var emaShort = await _emaService.GetAsync(symbol, interval, evaluationtime, shortPeriod);
             var emaMedium = await _emaService.GetAsync(symbol, interval, evaluationtime, mediumPeriod);
 
-            if (emaShort != null && emaMedium != null)
+            if (emaShort != null && emaMedium != null && emaMedium.Value != 0)
             {
                 result.IndicatorValues[$"EMA{shortPeriod}"] = emaShort.Value;
                 result.IndicatorValues[$"EMA{mediumPeriod}"] = emaMedium.Value;
@@ -54,21 +55,24 @@ namespace AionCoreBot.Application.Analyzers
                     result.ProposedAction = TradeAction.Sell;
                     result.SignalDescriptions.Add($"EMA{shortPeriod} under EMA{mediumPeriod}");
                 }
+
+                var EMARatio = ((emaShort.Value - emaMedium.Value) / emaMedium.Value) * 100m;
+
+                if (Math.Abs(EMARatio) < 2)
+                    result.ConfidenceScore = 0m;
+                else if (Math.Abs(EMARatio) < 5)
+                    result.ConfidenceScore = 0.5m;
+                else if (Math.Abs(EMARatio) < 10)
+                    result.ConfidenceScore = 1.0m;
+            }
+            else
+            {
+                // Optioneel: logging of waarschuwing
+                Console.WriteLine($"[WARN] EMAAnalyzer: insufficient EMA data for {symbol} - {interval} at {evaluationtime}");
             }
 
-            var EMARatio =((emaShort.Value-emaMedium.Value) / emaMedium.Value) * 100m;
-            if(Math.Abs(EMARatio) < 2)
-            {
-                result.ConfidenceScore = 0m;
-            } else if (Math.Abs(EMARatio) < 5)
-            {
-                result.ConfidenceScore = 0.5m;
-            } else if (Math.Abs(EMARatio) < 10)
-            {
-                result.ConfidenceScore = 1.0m;
-            }
-
-                return result;
+            return result;
         }
+
     }
 }

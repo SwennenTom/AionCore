@@ -15,6 +15,6 @@ namespace AionCoreBot.Domain.Models
         public DateTime Timestamp { get; set; }
         public int Period { get; set; }
         public decimal Value { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow.AddTicks(-(DateTime.UtcNow.Ticks % TimeSpan.TicksPerMillisecond));
     }
 }

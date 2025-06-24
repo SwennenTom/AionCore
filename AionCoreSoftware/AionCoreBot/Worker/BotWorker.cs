@@ -1,4 +1,5 @@
 ﻿using AionCoreBot.Application.Interfaces;
+using AionCoreBot.Application.Services;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Comms.Websocket;
 using AionCoreBot.Infrastructure.Interfaces;
@@ -23,6 +24,7 @@ public class BotWorker
     {
         var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
 
+        #region Initialisation
         Console.WriteLine("[BOOT] Clearing old candle and indicator data...");
         await ClearAllDataAsync();
 
@@ -43,9 +45,31 @@ public class BotWorker
         await EvaluateHistoricalSignalsAsync(stoppingToken);
 
         Console.WriteLine("[BOOT] Init complete. Switching to live mode.");
+        #endregion
+
+        // Periodieke aggregatie opstarten
+        _ = Task.Run(async () =>
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    using var scope = _serviceProvider.CreateScope();
+                    var aggregator = scope.ServiceProvider.GetRequiredService<CandleAggregator>();
+                    await aggregator.AggregateAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AGGREGATOR ERROR] {ex.Message}");
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
+            }
+        }, stoppingToken);
 
         await webSocketTask;
     }
+
 
     private async Task ClearAllDataAsync()
     {
