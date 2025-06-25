@@ -58,12 +58,21 @@ namespace AionCoreBot.Application.Analyzers
 
                 var EMARatio = ((emaShort.Value - emaMedium.Value) / emaMedium.Value) * 100m;
 
-                if (Math.Abs(EMARatio) < 2)
-                    result.ConfidenceScore = 0m;
-                else if (Math.Abs(EMARatio) < 5)
-                    result.ConfidenceScore = 0.5m;
-                else if (Math.Abs(EMARatio) < 10)
+                var absRatio = Math.Abs(EMARatio);
+
+                if (EMARatio < 1)
+                {
+                    result.ConfidenceScore = 0.0m;
+                }
+                else if (EMARatio >= 5)
+                {
                     result.ConfidenceScore = 1.0m;
+                }
+                else
+                {
+                    result.ConfidenceScore = (EMARatio - 1) / 4;
+                }
+
             }
             else
             {

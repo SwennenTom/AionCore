@@ -2,6 +2,7 @@
 using AionCoreBot.Application.Services;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Comms.Websocket;
+using AionCoreBot.Infrastructure.Converters;
 using AionCoreBot.Infrastructure.Interfaces;
 using AionCoreBot.Worker;
 using AionCoreBot.Worker.Interfaces;
@@ -26,19 +27,19 @@ public class BotWorker
 
         #region Initialisation
         Console.WriteLine("[BOOT] Clearing old candle and indicator data...");
-        await ClearAllDataAsync();
+        //await ClearAllDataAsync();
 
         Console.WriteLine("[BOOT] Starting WebSocket...");
         var webSocketTask = _webSocketService.StartAsync(symbols, stoppingToken);
 
         Console.WriteLine("[BOOT] Starting historical initialization...");
-        await DownloadHistoricalCandlesAsync(stoppingToken);
+        //await DownloadHistoricalCandlesAsync(stoppingToken);
 
         Console.WriteLine("[BOOT] Calculating historical indicators...");
         using (var scope = _serviceProvider.CreateScope())
         {
-            var analyzerOrchestrator = scope.ServiceProvider.GetRequiredService<IAnalyzerWorker>();
-            await analyzerOrchestrator.RunAllAsync();
+            //var analyzerOrchestrator = scope.ServiceProvider.GetRequiredService<IAnalyzerWorker>();
+            //await analyzerOrchestrator.RunAllAsync();
         }
 
         Console.WriteLine("[BOOT] Evaluating historical signals...");
@@ -134,17 +135,20 @@ public class BotWorker
 
         foreach (var symbol in symbols)
         {
-            foreach (var interval in intervals)
+            var evaluationIntervals = new[] { "1h", "4h", "1d" };
+
+            foreach (var interval in intervals.Where(i => evaluationIntervals.Contains(i)))
             {
                 var candles = await candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
 
                 if (candles != null && candles.Any())
                 {
-                    var evaluationPoints = candles
-                        .Select(c => c.CloseTime)
-                        .OrderBy(t => t)
-                        .Distinct()
-                        .ToList();
+                    var evaluationPoints = candles  .Select(c => c.CloseTime.RoundUpToNextMinute())
+                                                    .Distinct()
+                                                    .OrderBy(t => t)
+                                                    .ToList();
+
+
 
                     if (evaluationPoints.Count > 0)
                     {
