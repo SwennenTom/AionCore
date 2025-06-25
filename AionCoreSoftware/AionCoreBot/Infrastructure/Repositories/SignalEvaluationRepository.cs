@@ -40,6 +40,11 @@ namespace AionCoreBot.Infrastructure.Repositories
         {
             await _context.SaveChangesAsync();
         }
+
+        public async Task ClearAllAsync()
+        {   _context.SignalEvaluations.RemoveRange(_context.SignalEvaluations);
+            await _context.SaveChangesAsync();
+        }
     }
 
 }

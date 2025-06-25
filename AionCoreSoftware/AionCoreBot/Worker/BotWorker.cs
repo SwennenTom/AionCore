@@ -27,19 +27,19 @@ public class BotWorker
 
         #region Initialisation
         Console.WriteLine("[BOOT] Clearing old candle and indicator data...");
-        //await ClearAllDataAsync();
+        await ClearAllDataAsync();
 
         Console.WriteLine("[BOOT] Starting WebSocket...");
         var webSocketTask = _webSocketService.StartAsync(symbols, stoppingToken);
 
         Console.WriteLine("[BOOT] Starting historical initialization...");
-        //await DownloadHistoricalCandlesAsync(stoppingToken);
+        await DownloadHistoricalCandlesAsync(stoppingToken);
 
         Console.WriteLine("[BOOT] Calculating historical indicators...");
         using (var scope = _serviceProvider.CreateScope())
         {
-            //var analyzerOrchestrator = scope.ServiceProvider.GetRequiredService<IAnalyzerWorker>();
-            //await analyzerOrchestrator.RunAllAsync();
+            var analyzerOrchestrator = scope.ServiceProvider.GetRequiredService<IAnalyzerWorker>();
+            await analyzerOrchestrator.RunAllAsync();
         }
 
         Console.WriteLine("[BOOT] Evaluating historical signals...");
@@ -80,11 +80,13 @@ public class BotWorker
         var emaRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<EMAResult>>();
         var rsiRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<RSIResult>>();
         var atrRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<ATRResult>>();
+        var signalRepository = scope.ServiceProvider.GetRequiredService<ISignalEvaluationRepository>();
 
         await candleRepository.ClearAllAsync();
         await emaRepository.ClearAllAsync();
         await rsiRepository.ClearAllAsync();
         await atrRepository.ClearAllAsync();
+        await signalRepository.ClearAllAsync();
     }
     private async Task DownloadHistoricalCandlesAsync(CancellationToken stoppingToken)
     {
