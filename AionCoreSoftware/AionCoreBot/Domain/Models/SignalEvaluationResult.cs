@@ -29,6 +29,8 @@ namespace AionCoreBot.Domain.Models
         public decimal? ConfidenceScore { get; set; }
 
         public List<string>? SignalDescriptions { get; set; }
+        public DateTime CreatedAt { get; set; } = new DateTime(DateTime.UtcNow.Ticks - (DateTime.UtcNow.Ticks % TimeSpan.TicksPerSecond), DateTimeKind.Utc);
+
 
     }
 }

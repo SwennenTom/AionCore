@@ -49,27 +49,42 @@ public class BotWorker
         #endregion
 
         // Periodieke aggregatie opstarten
-        _ = Task.Run(async () =>
-        {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                try
-                {
-                    using var scope = _serviceProvider.CreateScope();
-                    var aggregator = scope.ServiceProvider.GetRequiredService<CandleAggregator>();
-                    await aggregator.AggregateAsync();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[AGGREGATOR ERROR] {ex.Message}");
-                }
-
-                await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
-            }
-        }, stoppingToken);
+        await StartLiveLoopAsync(stoppingToken);
 
         //await webSocketTask;
     }
+
+    public async Task StartLiveLoopAsync(CancellationToken stoppingToken)
+    {
+        var strategyTimer = TimeSpan.Zero; // direct eerste keer draaien
+        var strategyInterval = TimeSpan.FromHours(1);
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+
+                var aggregator = scope.ServiceProvider.GetRequiredService<CandleAggregator>();
+                await aggregator.AggregateAsync();
+
+                if (strategyTimer <= TimeSpan.Zero)
+                {
+                    var strategyService = scope.ServiceProvider.GetRequiredService<IStrategyService>();
+                    await strategyService.ExecuteStrategyAsync(stoppingToken);
+                    strategyTimer = strategyInterval;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LIVE ERROR] {ex.Message}");
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
+            strategyTimer -= TimeSpan.FromSeconds(60);
+        }
+    }
+
 
 
     private async Task ClearAllDataAsync()

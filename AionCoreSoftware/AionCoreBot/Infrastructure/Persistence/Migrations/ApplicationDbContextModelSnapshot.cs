@@ -196,6 +196,9 @@ namespace AionCoreBot.Infrastructure.Persistence.Migrations
                     b.Property<decimal?>("ConfidenceScore")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("EvaluationTime")
                         .HasColumnType("TEXT");
 

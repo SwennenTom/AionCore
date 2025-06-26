@@ -45,6 +45,35 @@ namespace AionCoreBot.Infrastructure.Repositories
         {   _context.SignalEvaluations.RemoveRange(_context.SignalEvaluations);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<SignalEvaluationResult>> GetLatestSignalsAsync()
+        {
+            var latestTimes = await _context.SignalEvaluations
+                .GroupBy(s => new { s.Symbol, s.Interval })
+                .Select(g => new
+                {
+                    g.Key.Symbol,
+                    g.Key.Interval,
+                    MaxEval = g.Max(x => x.EvaluationTime)
+                })
+                .ToListAsync();
+
+            var results = new List<SignalEvaluationResult>();
+
+            foreach (var item in latestTimes)
+            {
+                var matching = await _context.SignalEvaluations
+                    .Where(s => s.Symbol == item.Symbol &&
+                                s.Interval == item.Interval &&
+                                s.EvaluationTime == item.MaxEval)
+                    .ToListAsync();
+
+                results.AddRange(matching);
+            }
+
+            return results;
+        }
+
     }
 
 }

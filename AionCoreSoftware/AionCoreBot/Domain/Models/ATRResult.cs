@@ -17,6 +17,7 @@ namespace AionCoreBot.Domain.Models
         public decimal Value { get; set; }
         public decimal ClosePrice { get; set; }
         public decimal ValuePct { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow.AddTicks(-(DateTime.UtcNow.Ticks % TimeSpan.TicksPerMillisecond));
+        public DateTime CreatedAt { get; set; } = new DateTime(DateTime.UtcNow.Ticks - (DateTime.UtcNow.Ticks % TimeSpan.TicksPerSecond), DateTimeKind.Utc);
+
     }
 }

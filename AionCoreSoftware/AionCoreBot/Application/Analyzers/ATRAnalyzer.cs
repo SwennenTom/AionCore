@@ -1,6 +1,7 @@
 ﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
+using AionCoreBot.Infrastructure.Converters;
 using Microsoft.Extensions.Configuration;
 
 namespace AionCoreBot.Application.Analyzers
@@ -26,6 +27,8 @@ namespace AionCoreBot.Application.Analyzers
             int period = _configuration.GetValue<int>("IndicatorParameters:ATR:Period", 14);
             decimal thresholdPercent = _configuration.GetValue<decimal>("IndicatorParameters:ATR:Threshold", 3.0m) / 100m;
             decimal lowerBound = thresholdPercent / _configuration.GetValue<int>("IndicatorParameters:ATR:LowerBoundFactor", 10);
+            evaluationTime = evaluationTime.AlignToInterval(interval);
+
 
             var atr = await _atrService.GetAsync(symbol, interval, evaluationTime, period);
 
