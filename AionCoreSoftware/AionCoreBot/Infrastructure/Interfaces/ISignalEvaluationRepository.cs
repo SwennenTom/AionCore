@@ -13,6 +13,7 @@ namespace AionCoreBot.Infrastructure.Interfaces
         Task AddRangeAsync(IEnumerable<SignalEvaluationResult> results);
         Task<IEnumerable<SignalEvaluationResult>> GetBySymbolAndIntervalAsync(string symbol, string interval);
         Task SaveChangesAsync();
+        Task ClearAllAsync();
     }
 
 }

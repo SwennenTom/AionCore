@@ -2,6 +2,7 @@
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
 using Microsoft.Extensions.Configuration;
+using System.Runtime;
 
 namespace AionCoreBot.Application.Analyzers
 {
@@ -57,13 +58,21 @@ namespace AionCoreBot.Application.Analyzers
                 }
 
                 var EMARatio = ((emaShort.Value - emaMedium.Value) / emaMedium.Value) * 100m;
+                var EMARatioUpperLimit = _configuration.GetValue<decimal>("IndicatorParameters:EMA:EMARatioUpperLimit", 5);
 
-                if (Math.Abs(EMARatio) < 2)
-                    result.ConfidenceScore = 0m;
-                else if (Math.Abs(EMARatio) < 5)
-                    result.ConfidenceScore = 0.5m;
-                else if (Math.Abs(EMARatio) < 10)
+                if (EMARatio <= 0)
+                {
+                    result.ConfidenceScore = 0.0m;
+                }
+                else if (EMARatio >= EMARatioUpperLimit)
+                {
                     result.ConfidenceScore = 1.0m;
+                }
+                else
+                {
+                    result.ConfidenceScore = EMARatio / EMARatioUpperLimit;
+                }
+
             }
             else
             {

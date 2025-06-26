@@ -2,6 +2,7 @@
 using AionCoreBot.Application.Services;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Comms.Websocket;
+using AionCoreBot.Infrastructure.Converters;
 using AionCoreBot.Infrastructure.Interfaces;
 using AionCoreBot.Worker;
 using AionCoreBot.Worker.Interfaces;
@@ -79,11 +80,13 @@ public class BotWorker
         var emaRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<EMAResult>>();
         var rsiRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<RSIResult>>();
         var atrRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<ATRResult>>();
+        var signalRepository = scope.ServiceProvider.GetRequiredService<ISignalEvaluationRepository>();
 
         await candleRepository.ClearAllAsync();
         await emaRepository.ClearAllAsync();
         await rsiRepository.ClearAllAsync();
         await atrRepository.ClearAllAsync();
+        await signalRepository.ClearAllAsync();
     }
     private async Task DownloadHistoricalCandlesAsync(CancellationToken stoppingToken)
     {
@@ -134,17 +137,20 @@ public class BotWorker
 
         foreach (var symbol in symbols)
         {
-            foreach (var interval in intervals)
+            var evaluationIntervals = new[] { "1h", "4h", "1d" };
+
+            foreach (var interval in intervals.Where(i => evaluationIntervals.Contains(i)))
             {
                 var candles = await candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
 
                 if (candles != null && candles.Any())
                 {
-                    var evaluationPoints = candles
-                        .Select(c => c.CloseTime)
-                        .OrderBy(t => t)
-                        .Distinct()
-                        .ToList();
+                    var evaluationPoints = candles  .Select(c => c.CloseTime.RoundUpToNextMinute())
+                                                    .Distinct()
+                                                    .OrderBy(t => t)
+                                                    .ToList();
+
+
 
                     if (evaluationPoints.Count > 0)
                     {
