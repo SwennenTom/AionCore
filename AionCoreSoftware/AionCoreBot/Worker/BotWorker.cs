@@ -30,7 +30,7 @@ public class BotWorker
         await ClearAllDataAsync();
 
         Console.WriteLine("[BOOT] Starting WebSocket...");
-        var webSocketTask = _webSocketService.StartAsync(symbols, stoppingToken);
+        //var webSocketTask = _webSocketService.StartAsync(symbols, stoppingToken);
 
         Console.WriteLine("[BOOT] Starting historical initialization...");
         await DownloadHistoricalCandlesAsync(stoppingToken);
@@ -68,7 +68,7 @@ public class BotWorker
             }
         }, stoppingToken);
 
-        await webSocketTask;
+        //await webSocketTask;
     }
 
 

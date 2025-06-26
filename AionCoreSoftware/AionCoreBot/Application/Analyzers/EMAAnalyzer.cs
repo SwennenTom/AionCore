@@ -57,21 +57,32 @@ namespace AionCoreBot.Application.Analyzers
                     result.SignalDescriptions.Add($"EMA{shortPeriod} under EMA{mediumPeriod}");
                 }
 
-                var EMARatio = ((emaShort.Value - emaMedium.Value) / emaMedium.Value) * 100m;
-                var EMARatioUpperLimit = _configuration.GetValue<decimal>("IndicatorParameters:EMA:EMARatioUpperLimit", 5);
+                var EMARatio = (emaShort.Value - emaMedium.Value) / emaMedium.Value;
+
+                var upperLimit = _configuration.GetValue<decimal>("IndicatorParameters:EMA:EMARatioUpperThreshold", 0.05m);
+                var lowerThreshold = _configuration.GetValue<decimal>("IndicatorParameters:EMA:EMARatioLowerThreshold", 0.005m);
 
                 if (EMARatio <= 0)
                 {
                     result.ConfidenceScore = 0.0m;
                 }
-                else if (EMARatio >= EMARatioUpperLimit)
+                else if (EMARatio <= lowerThreshold)
                 {
+                    // Net boven de null, maar nog niet relevant
+                    result.ConfidenceScore = 0.0m;
+                }
+                else if (EMARatio >= upperLimit)
+                {
+                    // Vol vertrouwen
                     result.ConfidenceScore = 1.0m;
                 }
                 else
                 {
-                    result.ConfidenceScore = EMARatio / EMARatioUpperLimit;
+                    // Normaliseren t.o.v. onderste drempel
+                    var normalized = (EMARatio - lowerThreshold) / (upperLimit - lowerThreshold);
+                    result.ConfidenceScore = (decimal)Math.Pow((double)normalized, 1.5); // exponentieel
                 }
+
 
             }
             else
