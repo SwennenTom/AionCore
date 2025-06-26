@@ -116,7 +116,7 @@ namespace AionCoreBot.Application.Indicators
                                 Interval = interval,
                                 Period = emaPeriod,
                                 Timestamp = candle.OpenTime,
-                                Value = (decimal)Math.Round(previousEMA.Value, 2)
+                                Value = (decimal)previousEMA.Value
                             };
 
                             await _emaRepository.AddAsync(emaResult);

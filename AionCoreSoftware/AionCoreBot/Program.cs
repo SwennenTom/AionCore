@@ -20,10 +20,12 @@ builder.Services.AddScoped<BotWorker>();
 builder.Services.AddScoped<CandleAggregator>();
 builder.Services.AddScoped<IAnalyzerWorker, AnalyzerWorker>();
 builder.Services.AddHostedService<ScopedWorkerHostedService>();
+builder.Services.AddScoped<IStrategyService, StrategyService>();
+builder.Services.AddScoped<IStrategizer, Strategizer>();
+
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-options//.EnableSensitiveDataLogging()
-        .UseSqlite(builder.Configuration.GetConnectionString("DatabaseConnection")));
+options.UseSqlite(builder.Configuration.GetConnectionString("DatabaseConnection")));
 
 builder.Services.AddScoped<BinanceWebSocketService>();
 builder.Services.AddScoped<ICandleDownloadService, BinanceCandleDownloadService>();

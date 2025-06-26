@@ -70,7 +70,7 @@ namespace AionCoreBot.Application.Indicators
                 Interval = interval,
                 Period = period,
                 Value = rsi,
-                Timestamp = ordered.Last().CloseTime
+                Timestamp = ordered.Last().OpenTime
             };
 
             await _rsiRepository.AddAsync(result);

@@ -26,6 +26,7 @@ namespace AionCoreBot.Application.Analyzers
             int period = _configuration.GetValue<int>("IndicatorParameters:RSI:Period", 14);
             int overbought = _configuration.GetValue<int>("IndicatorParameters:RSI:OverboughtThreshold", 70);
             int oversold = _configuration.GetValue<int>("IndicatorParameters:RSI:OversoldThreshold", 30);
+            evaluationtime = evaluationtime.AddSeconds(-evaluationtime.Second).AddMilliseconds(-evaluationtime.Millisecond);
 
             var rsi = await _rsiService.GetAsync(symbol, interval,evaluationtime, period);
 
@@ -69,6 +70,7 @@ namespace AionCoreBot.Application.Analyzers
                 else
                 {
                     // Neutrale RSI → confidence daalt naarmate dichter bij 50
+                    result.ProposedAction = TradeAction.Hold;
                     result.Reason = "RSI in neutral zone";
                     result.SignalDescriptions.Add("RSI neutral");
 

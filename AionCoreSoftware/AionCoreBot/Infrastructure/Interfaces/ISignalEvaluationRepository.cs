@@ -14,6 +14,7 @@ namespace AionCoreBot.Infrastructure.Interfaces
         Task<IEnumerable<SignalEvaluationResult>> GetBySymbolAndIntervalAsync(string symbol, string interval);
         Task SaveChangesAsync();
         Task ClearAllAsync();
+        Task<List<SignalEvaluationResult>> GetLatestSignalsAsync();
     }
 
 }
