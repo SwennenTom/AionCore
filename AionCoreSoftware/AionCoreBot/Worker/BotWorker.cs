@@ -24,15 +24,25 @@ public class BotWorker
     public async Task RunAsync(CancellationToken stoppingToken)
     {
         var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
+        var WebSocketSwitch = _configuration.GetSection("BinanceExchange:Switches:WebSocketSwitch").Get<bool>();
 
         #region Initialisation
         Console.WriteLine("[BOOT] Clearing old candle and indicator data...");
         await ClearAllDataAsync();
 
-        Console.WriteLine("[BOOT] Starting WebSocket...");
-        //var webSocketTask = _webSocketService.StartAsync(symbols, stoppingToken);
+        Task? webSocketTask = null;
 
-        Console.WriteLine("[BOOT] Starting historical initialization...");
+        if (WebSocketSwitch)
+        {
+            Console.WriteLine("[BOOT] Starting WebSocket...");
+            webSocketTask = _webSocketService.StartAsync(symbols, stoppingToken);
+        }
+        else
+        {
+            Console.WriteLine("[BOOT] WebSocket is disabled. Skipping WebSocket initialization.");
+        }
+
+            Console.WriteLine("[BOOT] Starting historical initialization...");
         await DownloadHistoricalCandlesAsync(stoppingToken);
 
         Console.WriteLine("[BOOT] Calculating historical indicators...");
@@ -51,9 +61,12 @@ public class BotWorker
         // Periodieke aggregatie opstarten
         await StartLiveLoopAsync(stoppingToken);
 
-        //await webSocketTask;
-    }
+        if(WebSocketSwitch && webSocketTask != null)
+        {          
+            await webSocketTask;
+        }
 
+    }
     public async Task StartLiveLoopAsync(CancellationToken stoppingToken)
     {
         var strategyTimer = TimeSpan.Zero; // direct eerste keer draaien
@@ -84,9 +97,6 @@ public class BotWorker
             strategyTimer -= TimeSpan.FromSeconds(60);
         }
     }
-
-
-
     private async Task ClearAllDataAsync()
     {
         using var scope = _serviceProvider.CreateScope();
