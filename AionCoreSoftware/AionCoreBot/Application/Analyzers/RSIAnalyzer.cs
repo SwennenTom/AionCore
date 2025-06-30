@@ -1,6 +1,7 @@
 ﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
+using AionCoreBot.Infrastructure.Interfaces;
 using Microsoft.Extensions.Configuration;
 
 namespace AionCoreBot.Application.Analyzers
@@ -9,11 +10,13 @@ namespace AionCoreBot.Application.Analyzers
     {
         private readonly IIndicatorService<RSIResult> _rsiService;
         private readonly IConfiguration _configuration;
+        private readonly ICandleRepository _candleRepository;
 
-        public RSIAnalyzer(IIndicatorService<RSIResult> rsiService, IConfiguration configuration)
+        public RSIAnalyzer(IIndicatorService<RSIResult> rsiService, IConfiguration configuration, ICandleRepository candleRepository)
         {
             _rsiService = rsiService;
             _configuration = configuration;
+            _candleRepository = candleRepository;
         }
 
         public async Task<SignalEvaluationResult> AnalyzeAsync(string symbol, string interval)
@@ -28,7 +31,8 @@ namespace AionCoreBot.Application.Analyzers
             int oversold = _configuration.GetValue<int>("IndicatorParameters:RSI:OversoldThreshold", 30);
             evaluationtime = evaluationtime.AddSeconds(-evaluationtime.Second).AddMilliseconds(-evaluationtime.Millisecond);
 
-            var rsi = await _rsiService.GetAsync(symbol, interval,evaluationtime, period);
+            var rsi = await _rsiService.GetAsync(symbol, interval, evaluationtime, period);
+            var previousRsi = await _rsiService.GetAsync(symbol, interval, evaluationtime.AddMinutes(-1), period);
 
             var result = new SignalEvaluationResult
             {
@@ -45,42 +49,105 @@ namespace AionCoreBot.Application.Analyzers
             {
                 result.IndicatorValues[$"RSI{period}"] = rsi.Value;
 
-                if (rsi.Value < oversold)
-                {
-                    result.ProposedAction = TradeAction.Buy;
-                    result.SignalDescriptions.Add("RSI oversold");
-                    result.Reason = $"RSI under {oversold}";
+                // Volume uit candles ophalen
+                var candles = (await _candleRepository.GetBySymbolAndIntervalAsync(symbol, interval)).ToList();
 
-                    // Hoe lager de RSI, hoe sterker het signaal
-                    var distance = oversold - rsi.Value;
-                    var normalized = Math.Min(distance / oversold, 1m);
-                    result.ConfidenceScore = 0.6m + 0.4m * normalized;
-                }
-                else if (rsi.Value > overbought)
-                {
-                    result.ProposedAction = TradeAction.Sell;
-                    result.SignalDescriptions.Add("RSI overbought");
-                    result.Reason = $"RSI over {overbought}";
+                var currentCandle = candles.FirstOrDefault(c => c.CloseTime == evaluationtime);
+                var previousVolumes = candles
+                    .Where(c => c.CloseTime <= evaluationtime)
+                    .OrderByDescending(c => c.CloseTime)
+                    .Take(20)
+                    .ToList();
 
-                    // Hoe hoger de RSI, hoe sterker het signaal
-                    var distance = rsi.Value - overbought;
-                    var normalized = Math.Min(distance / (100 - overbought), 1m);
-                    result.ConfidenceScore = 0.6m + 0.4m * normalized;
-                }
-                else
-                {
-                    // Neutrale RSI → confidence daalt naarmate dichter bij 50
-                    result.ProposedAction = TradeAction.Hold;
-                    result.Reason = "RSI in neutral zone";
-                    result.SignalDescriptions.Add("RSI neutral");
+                decimal? currentVolume = currentCandle?.Volume;
+                decimal? averageVolume = previousVolumes.Count > 0 ? previousVolumes.Average(c => c.Volume) : null;
 
-                    var distanceToCenter = Math.Abs(rsi.Value - 50);
-                    var normalized = distanceToCenter / 20m; // max afstand = 20 (van 50 naar 70/30)
-                    result.ConfidenceScore = 0.4m * normalized;
-                }
+                result.ProposedAction = DetermineAction(rsi.Value, overbought, oversold, result.SignalDescriptions, out string reason);
+                result.Reason = reason;
+
+                result.ConfidenceScore = CalculateConfidenceScore(
+                    rsiValue: rsi.Value,
+                    overbought: overbought,
+                    oversold: oversold,
+                    previousRsi: previousRsi?.Value,
+                    currentVolume: currentVolume,
+                    averageVolume: averageVolume
+                );
             }
 
             return result;
         }
+
+        private TradeAction DetermineAction(decimal rsiValue, int overbought, int oversold, List<string> descriptions, out string reason)
+        {
+            if (rsiValue < oversold)
+            {
+                descriptions.Add("RSI oversold");
+                reason = $"RSI under {oversold}";
+                return TradeAction.Buy;
+            }
+            else if (rsiValue > overbought)
+            {
+                descriptions.Add("RSI overbought");
+                reason = $"RSI over {overbought}";
+                return TradeAction.Sell;
+            }
+            else
+            {
+                descriptions.Add("RSI neutral");
+                reason = "RSI in neutral zone";
+                return TradeAction.Hold;
+            }
+        }
+
+        private decimal CalculateConfidenceScore(
+            decimal rsiValue,
+            int overbought,
+            int oversold,
+            decimal? previousRsi,
+            decimal? currentVolume,
+            decimal? averageVolume)
+        {
+            decimal confidence = 0m;
+
+            // 1. RSI afstand
+            if (rsiValue < oversold)
+            {
+                var dist = oversold - rsiValue;
+                var norm = Math.Min((decimal)Math.Pow((double)(dist / oversold), 1.5), 1m);
+                confidence += 0.5m * norm;
+            }
+            else if (rsiValue > overbought)
+            {
+                var dist = rsiValue - overbought;
+                var norm = Math.Min(dist / (100 - overbought), 1m);
+                confidence += 0.5m * norm;
+            }
+            else
+            {
+                var distTo50 = Math.Abs(rsiValue - 50);
+                var norm = distTo50 / 20m;
+                confidence += 0.3m * norm;
+            }
+
+            // 2. Momentum (RSI stijging of daling)
+            if (previousRsi.HasValue)
+            {
+                var momentum = rsiValue - previousRsi.Value;
+                confidence += 0.2m * Math.Clamp(momentum / 10m, -1m, 1m);
+            }
+
+            // 3. Volume
+            if (currentVolume.HasValue && averageVolume.HasValue && averageVolume.Value > 0)
+            {
+                var ratio = currentVolume.Value / averageVolume.Value;
+                var volumeBoost = Math.Clamp(ratio - 1, 0, 1); // enkel boost bij hoger dan gemiddeld
+                confidence += 0.3m * volumeBoost;
+            }
+
+            return Math.Clamp(confidence, 0m, 1m);
+        }
+
+
     }
 }
