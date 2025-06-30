@@ -32,5 +32,20 @@ namespace AionCoreBot.Infrastructure.Converters
                 _ => throw new ArgumentException($"Unknown interval: {interval}")
             };
         }
+        public static DateTime SubtractInterval(this DateTime dateTime, string interval)
+        {
+            return interval switch
+            {
+                "1m" => dateTime.AddMinutes(-1),
+                "3m" => dateTime.AddMinutes(-3),
+                "5m" => dateTime.AddMinutes(-5),
+                "15m" => dateTime.AddMinutes(-15),
+                "30m" => dateTime.AddMinutes(-30),
+                "1h" => dateTime.AddHours(-1),
+                "4h" => dateTime.AddHours(-4),
+                "1d" => dateTime.AddDays(-1),
+                _ => throw new ArgumentException($"Onbekend interval: {interval}")
+            };
+        }
     }
 }
