@@ -1,7 +1,7 @@
 ﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
-using AionCoreBot.Infrastructure.Converters;
+using AionCoreBot.Helpers.Converters;
 using AionCoreBot.Infrastructure.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;

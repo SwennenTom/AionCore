@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace AionCoreBot.Infrastructure.Converters
+namespace AionCoreBot.Helpers.Converters
 {
 
     public class StringToDecimalConverter : JsonConverter<decimal>

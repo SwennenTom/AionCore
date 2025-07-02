@@ -50,7 +50,7 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
                 var timeLeft = _timeSynchronizer.GetTimeUntilNextMinuteCandle();
                 int secondsRemaining = (int)timeLeft.TotalSeconds;
 
-                //Console.Write($"\r[WS] Next 1m candle in: {secondsRemaining:00} sec   ");
+                Console.Write($"\r[WS] Next 1m candle in: {secondsRemaining:00} sec   ");
 
                 await Task.Delay(1000, token);
             }
@@ -69,18 +69,18 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
             {
                 await _client.ConnectAsync(streams, cancellationToken);
                 _reconnectAttempts = 0;
-                //Console.WriteLine("[WS] Connected to Binance stream.");
+                Console.WriteLine("[WS] Connected to Binance stream.");
             }
             catch (Exception ex)
             {
-                //Console.WriteLine($"[WS] Initial connection failed: {ex.Message}");
+                Console.WriteLine($"[WS] Initial connection failed: {ex.Message}");
                 await AttemptReconnectAsync();
             }
         }
 
         private async void OnDisconnected()
         {
-            //Console.WriteLine("[WS] Disconnected from Binance. Attempting reconnect...");
+            Console.WriteLine("[WS] Disconnected from Binance. Attempting reconnect...");
             await AttemptReconnectAsync();
         }
 
@@ -95,22 +95,22 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
                 {
                     _reconnectAttempts++;
                     int delay = Math.Min(60, _reconnectAttempts * 5);
-                    //Console.WriteLine($"[WS] Waiting {delay} seconds before reconnect attempt #{_reconnectAttempts}...");
+                    Console.WriteLine($"[WS] Waiting {delay} seconds before reconnect attempt #{_reconnectAttempts}...");
                     await Task.Delay(TimeSpan.FromSeconds(delay), _externalCancellationToken);
 
                     await ConnectAndSubscribeAsync(_externalCancellationToken);
-                    //Console.WriteLine("[WS] Reconnected successfully.");
+                    Console.WriteLine("[WS] Reconnected successfully.");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    //Console.WriteLine($"[WS] Reconnect attempt #{_reconnectAttempts} failed: {ex.Message}");
+                    Console.WriteLine($"[WS] Reconnect attempt #{_reconnectAttempts} failed: {ex.Message}");
                 }
             }
 
             if (_reconnectAttempts >= MaxReconnectAttempts)
             {
-                //Console.WriteLine("[WS] Max reconnect attempts reached. Giving up.");
+                Console.WriteLine("[WS] Max reconnect attempts reached. Giving up.");
             }
 
             _isReconnecting = false;
@@ -123,7 +123,7 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
                 var binanceKline = JsonSerializer.Deserialize<BinanceKlineMessage>(message);
                 var c = binanceKline?.Data?.Kline;
 
-                //Console.WriteLine($"[WS] Message {binanceKline?.Stream} IsFinal={c?.IsFinal}");
+                Console.WriteLine($"[WS] Message {binanceKline?.Stream} IsFinal={c?.IsFinal}");
 
                 if (c?.IsFinal == true)
                 {
@@ -149,13 +149,13 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
                     await dbContext.AddAsync(candle);
                     await dbContext.SaveChangesAsync();
 
-                    //Console.WriteLine($"[WS] Final candle stored: {symbol} @ {DateTimeOffset.FromUnixTimeMilliseconds(c.CloseTime).UtcDateTime:yyyy-MM-dd HH:mm:ss}");
+                    Console.WriteLine($"[WS] Final candle stored: {symbol} @ {DateTimeOffset.FromUnixTimeMilliseconds(c.CloseTime).UtcDateTime:yyyy-MM-dd HH:mm:ss}");
 
                 }
             }
             catch (Exception ex)
             {
-                //Console.WriteLine($"[WS] Error handling message: {ex.Message}\nPayload: {message}");
+                Console.WriteLine($"[WS] Error handling message: {ex.Message}\nPayload: {message}");
             }
         }
 

@@ -78,6 +78,14 @@ namespace AionCoreBot.Worker.Services
             return nextMinute - correctedUtcNow;
         }
 
+        public TimeSpan GetTimeUntilNextFullHourCandle()
+        {
+            var now = DateTime.UtcNow;
+            var nextHour = now.AddHours(1).Date.AddHours(now.Hour + 1);
+            return nextHour - now;
+        }
+
+
         public void Dispose()
         {
             _syncTimer?.Dispose();
