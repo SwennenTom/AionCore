@@ -1,4 +1,4 @@
-﻿using AionCoreBot.Infrastructure.Converters;
+﻿using AionCoreBot.Helpers.Converters;
 using System;
 using System.Text.Json.Serialization;
 

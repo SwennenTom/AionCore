@@ -1,8 +1,9 @@
 ﻿using AionCoreBot.Application.Interfaces;
 using AionCoreBot.Application.Services;
 using AionCoreBot.Domain.Models;
+using AionCoreBot.Helpers;
+using AionCoreBot.Helpers.Converters;
 using AionCoreBot.Infrastructure.Comms.Websocket;
-using AionCoreBot.Infrastructure.Converters;
 using AionCoreBot.Infrastructure.Interfaces;
 using AionCoreBot.Worker;
 using AionCoreBot.Worker.Interfaces;
@@ -69,8 +70,9 @@ public class BotWorker
     }
     public async Task StartLiveLoopAsync(CancellationToken stoppingToken)
     {
-        var strategyTimer = TimeSpan.Zero; // direct eerste keer draaien
-        var strategyInterval = TimeSpan.FromHours(1);
+        Console.WriteLine("[LIVE] Starting live aggregation and strategy execution...");
+        var sync = new BinanceTimeSynchronizer(); // eventueel injecteren
+        var nextStrategyTime = DateTime.UtcNow.RoundUpToNextHour(); // helper extension
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -79,13 +81,16 @@ public class BotWorker
                 using var scope = _serviceProvider.CreateScope();
 
                 var aggregator = scope.ServiceProvider.GetRequiredService<CandleAggregator>();
+                Console.WriteLine($"[LIVE] Aggregating candles at {DateTime.UtcNow:HH:mm:ss}...");
                 await aggregator.AggregateAsync();
 
-                if (strategyTimer <= TimeSpan.Zero)
+                if (DateTime.UtcNow >= nextStrategyTime)
                 {
                     var strategyService = scope.ServiceProvider.GetRequiredService<IStrategyService>();
                     await strategyService.ExecuteStrategyAsync(stoppingToken);
-                    strategyTimer = strategyInterval;
+
+                    nextStrategyTime = nextStrategyTime.AddHours(1); // of re-sync via Binance
+                    Console.WriteLine($"[STRATEGY] Executed. Next at {nextStrategyTime:HH:mm:ss}");
                 }
             }
             catch (Exception ex)
@@ -93,10 +98,13 @@ public class BotWorker
                 Console.WriteLine($"[LIVE ERROR] {ex.Message}");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
-            strategyTimer -= TimeSpan.FromSeconds(60);
+            // Delay tot volgende minuut
+            var delay = sync.GetTimeUntilNextMinuteCandle();
+            await Task.Delay(delay, stoppingToken);
         }
     }
+
+
     private async Task ClearAllDataAsync()
     {
         using var scope = _serviceProvider.CreateScope();
