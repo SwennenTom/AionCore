@@ -1,12 +1,12 @@
 ﻿using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
+using AionCoreBot.Application.Analysis.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using AionCoreBot.Application.Analysis.Interfaces;
 using AionCoreBot.Application.Signals.Interfaces;
 
 namespace AionCoreBot.Application.Signals.Services
