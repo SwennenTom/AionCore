@@ -51,6 +51,7 @@ namespace AionCoreBot.Application.Services
             {
                 foreach (var analyzer in _analyzers)
                 {
+                    Console.WriteLine($"[DEBUG] Evaluating {analyzer.GetType().Name} for {symbol} ({interval}) at {timestamp}");
                     var result = await analyzer.AnalyzeAsync(symbol, interval, timestamp);
                     result.Symbol = symbol;
                     result.Interval = interval;
@@ -59,17 +60,32 @@ namespace AionCoreBot.Application.Services
                     result.ConfidenceScore ??= 0.0m;
 
                     results.Add(result);
+                    
+                    Console.WriteLine($"[DEBUG] Result toegevoegd voor {symbol} ({interval}) op {timestamp} door {analyzer.GetType().Name}");
                 }
             }
             Console.WriteLine($"[INIT] {results.Count} signalen geëvalueerd voor {symbol} ({interval})");
 
             await _signalRepo.AddRangeAsync(results);
             await _signalRepo.SaveChangesAsync();
+
             Console.WriteLine("[DEBUG] SignalEvaluationResults saved!");
 
 
             return results;
         }
+
+        public async Task<List<SignalEvaluationResult>> EvaluateAllAsync(string symbol, string interval, IEnumerable<Candle> candles)
+        {
+            var evaluationPoints = candles
+                .Select(c => c.OpenTime)
+                .Distinct()
+                .OrderBy(t => t)
+                .ToList();
+            Console.WriteLine($"[INIT] {evaluationPoints.Count} unieke evaluatiepunten gevonden voor {symbol} ({interval})");
+            return await EvaluateHistoricalSignalsAsync(symbol, interval, evaluationPoints);
+        }
+
 
     }
 

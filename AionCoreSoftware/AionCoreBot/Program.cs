@@ -22,7 +22,9 @@ builder.Services.AddScoped<IAnalyzerWorker, AnalyzerWorker>();
 builder.Services.AddHostedService<ScopedWorkerHostedService>();
 builder.Services.AddScoped<IStrategyService, StrategyService>();
 builder.Services.AddScoped<IStrategizer, Strategizer>();
-
+builder.Services.AddScoped<ISignalInitializationService, SignalInitializationService>();
+builder.Services.AddScoped<ICandleInitializationService, CandleInitializationService>();
+builder.Services.AddScoped<IDataCleanupService, DataCleanupService>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 options.UseSqlite(builder.Configuration.GetConnectionString("DatabaseConnection")));

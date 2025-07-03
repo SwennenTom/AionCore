@@ -74,6 +74,15 @@ namespace AionCoreBot.Infrastructure.Comms.Clients
             return candles;
         }
 
+        public async Task<List<Candle>> DownloadCandlesAsync(string symbol, string interval, int days)
+        {
+            var to = DateTime.UtcNow;
+            var from = to.AddDays(-days);
+
+            return await GetHistoricalCandlesAsync(symbol, interval, from, to);
+        }
+
+
         private static decimal ParseDecimal(JsonElement element) =>
             decimal.Parse(element.GetString() ?? "0", CultureInfo.InvariantCulture);
 
