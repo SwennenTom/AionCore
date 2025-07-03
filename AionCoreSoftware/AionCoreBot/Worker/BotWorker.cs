@@ -76,20 +76,38 @@ public class BotWorker
 
     public async Task StartLiveLoopAsync(CancellationToken stoppingToken)
     {
+        DateTime lastStrategyExecutionHour = DateTime.MinValue;
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 using var scope = _serviceProvider.CreateScope();
+
+                // Aggregator elke minuut
                 var aggregator = scope.ServiceProvider.GetRequiredService<CandleAggregator>();
                 await aggregator.AggregateAsync();
+
+                // Strategie check
+                var now = DateTime.UtcNow;
+                var currentHour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0);
+
+                if (currentHour > lastStrategyExecutionHour)
+                {
+                    var strategyService = scope.ServiceProvider.GetRequiredService<IStrategyService>();
+                    await strategyService.ExecuteStrategyAsync(stoppingToken);
+                    lastStrategyExecutionHour = currentHour;
+
+                    Console.WriteLine($"[STRATEGY] Uitgevoerd om {currentHour:HH:mm} UTC");
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[AGGREGATOR ERROR] {ex.Message}");
+                Console.WriteLine($"[BOTWORKER ERROR] {ex.Message}");
             }
 
             await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
         }
     }
+
 }

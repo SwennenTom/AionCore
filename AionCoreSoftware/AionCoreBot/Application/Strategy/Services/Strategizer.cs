@@ -24,12 +24,17 @@ namespace AionCoreBot.Application.Strategy.Services
             if (signals == null || !signals.Any())
                 throw new ArgumentNullException(nameof(signals));
 
-            var weightedScores = new Dictionary<TradeAction, decimal>
-        {
-            { TradeAction.Buy, 0 },
-            { TradeAction.Sell, 0 },
-            { TradeAction.Hold, 0 }
-        };
+            var weightedScores = new Dictionary<TradeAction, decimal>();
+
+            foreach (var signal in signals)
+            {
+                if (!weightedScores.ContainsKey(signal.ProposedAction))
+                    weightedScores[signal.ProposedAction] = 0;
+
+                var weight = signal.ConfidenceScore ?? 1m;
+                weightedScores[signal.ProposedAction] += weight;
+            }
+
 
             foreach (var signal in signals)
             {
