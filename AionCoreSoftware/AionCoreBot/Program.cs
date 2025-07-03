@@ -1,18 +1,29 @@
 using AionCoreBot;
-using AionCoreBot.Application.Indicators;
-using AionCoreBot.Application.Interfaces;
-using AionCoreBot.Application.Services;
+
+using AionCoreBot.Application.Analysis.Indicators;
+using AionCoreBot.Application.Analysis.Interfaces;
+using AionCoreBot.Application.Candles.Interfaces;
+using AionCoreBot.Application.Candles.Services;
+using AionCoreBot.Application.Maintenance;
+using AionCoreBot.Application.Signals.Interfaces;
+using AionCoreBot.Application.Signals.Services;
+using AionCoreBot.Application.Strategy.Interfaces;
+using AionCoreBot.Application.Strategy.Services;
+
 using AionCoreBot.Domain.Models;
+
 using AionCoreBot.Infrastructure.Comms.Clients;
 using AionCoreBot.Infrastructure.Comms.Websocket;
 using AionCoreBot.Infrastructure.Data;
 using AionCoreBot.Infrastructure.Interfaces;
 using AionCoreBot.Infrastructure.Repositories;
-using AionCoreBot.Application.Interfaces.IAnalyzers;
+
 using AionCoreBot.Worker.Interfaces;
 using AionCoreBot.Worker.Services;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddScoped<BotWorker>();
