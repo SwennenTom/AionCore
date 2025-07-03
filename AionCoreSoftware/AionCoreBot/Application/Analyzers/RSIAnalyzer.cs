@@ -34,6 +34,11 @@ namespace AionCoreBot.Application.Analyzers
             var rsi = await _rsiService.GetAsync(symbol, interval, evaluationtime, period);
             var previousRsi = await _rsiService.GetAsync(symbol, interval, evaluationtime.AddMinutes(-1), period);
 
+            if(rsi == null)
+            {
+                return null;
+            }
+
             var result = new SignalEvaluationResult
             {
                 Symbol = symbol,
@@ -45,8 +50,6 @@ namespace AionCoreBot.Application.Analyzers
                 AnalyzerName = GetType().Name
             };
 
-            if (rsi != null)
-            {
                 result.IndicatorValues[$"RSI{period}"] = rsi.Value;
 
                 // Volume uit candles ophalen
@@ -73,7 +76,7 @@ namespace AionCoreBot.Application.Analyzers
                     currentVolume: currentVolume,
                     averageVolume: averageVolume
                 );
-            }
+            
 
             return result;
         }

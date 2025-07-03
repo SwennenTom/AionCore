@@ -68,15 +68,11 @@ namespace AionCoreBot.Application.Analyzers
             if (atr == null || atr.ClosePrice <= 0)
             {
                 // Onvoldoende data
-                return new SignalEvaluationResult
+                if (atr == null || atr.ClosePrice <= 0)
                 {
-                    Symbol = symbol,
-                    Interval = interval,
-                    EvaluationTime = evaluationTime,
-                    ProposedAction = TradeAction.Hold,
-                    Reason = "ATR data not available or invalid",
-                    SignalDescriptions = new List<string>()
-                };
+                    return null; // Geen geldige data, dus skip
+                }
+
             }
 
             // Vorige ATR (van vorige interval)

@@ -14,7 +14,6 @@ using AionCoreBot.Worker.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
-//comment om git te testen
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddScoped<BotWorker>();
 builder.Services.AddScoped<CandleAggregator>();

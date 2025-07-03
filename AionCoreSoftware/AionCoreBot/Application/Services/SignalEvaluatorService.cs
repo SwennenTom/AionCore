@@ -51,8 +51,12 @@ namespace AionCoreBot.Application.Services
             {
                 foreach (var analyzer in _analyzers)
                 {
-                    Console.WriteLine($"[DEBUG] Evaluating {analyzer.GetType().Name} for {symbol} ({interval}) at {timestamp}");
+                    //Console.WriteLine($"[DEBUG] Evaluating {analyzer.GetType().Name} for {symbol} ({interval}) at {timestamp}");
                     var result = await analyzer.AnalyzeAsync(symbol, interval, timestamp);
+
+                    if (result == null)
+                        continue;
+
                     result.Symbol = symbol;
                     result.Interval = interval;
                     result.EvaluationTime = timestamp;
@@ -61,7 +65,7 @@ namespace AionCoreBot.Application.Services
 
                     results.Add(result);
                     
-                    Console.WriteLine($"[DEBUG] Result toegevoegd voor {symbol} ({interval}) op {timestamp} door {analyzer.GetType().Name}");
+                    //Console.WriteLine($"[DEBUG] Result toegevoegd voor {symbol} ({interval}) op {timestamp} door {analyzer.GetType().Name}");
                 }
             }
             Console.WriteLine($"[INIT] {results.Count} signalen geëvalueerd voor {symbol} ({interval})");
@@ -69,7 +73,7 @@ namespace AionCoreBot.Application.Services
             await _signalRepo.AddRangeAsync(results);
             await _signalRepo.SaveChangesAsync();
 
-            Console.WriteLine("[DEBUG] SignalEvaluationResults saved!");
+            //Console.WriteLine("[DEBUG] SignalEvaluationResults saved!");
 
 
             return results;
