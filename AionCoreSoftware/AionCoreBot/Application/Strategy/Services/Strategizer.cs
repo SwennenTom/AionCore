@@ -35,14 +35,27 @@ namespace AionCoreBot.Application.Strategy.Services
                 weightedScores[signal.ProposedAction] += weight;
             }
 
+            var ordered = weightedScores.OrderByDescending(kv => kv.Value).ToList();
 
-            foreach (var signal in signals)
+            if (ordered.Count < 2)
             {
-                var weight = signal.ConfidenceScore ?? 1m;
-                weightedScores[signal.ProposedAction] += weight;
+                // Te weinig verschillende acties om te vergelijken, default naar Hold
+                var singleAction = ordered.FirstOrDefault();
+                var action = singleAction.Key;
+                var score = singleAction.Value;
+
+                return Task.FromResult(new TradeDecision
+                {
+                    Symbol = signals.First().Symbol,
+                    Interval = signals.First().Interval,
+                    Action = score >= _minimumConfidenceThreshold ? action : TradeAction.Hold,
+                    Reason = score >= _minimumConfidenceThreshold
+                        ? $"Alleen actie {action} met score {score:N2} beschikbaar"
+                        : "Te lage confidence score, default naar Hold",
+                    DecisionTime = DateTime.UtcNow
+                });
             }
 
-            var ordered = weightedScores.OrderByDescending(kv => kv.Value).ToList();
             var best = ordered[0];
             var secondBest = ordered[1];
 
@@ -74,5 +87,6 @@ namespace AionCoreBot.Application.Strategy.Services
 
             return Task.FromResult(decision);
         }
+
     }
 }
