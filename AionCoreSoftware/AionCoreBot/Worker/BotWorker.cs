@@ -1,6 +1,4 @@
-﻿using AionCoreBot.Application.Interfaces;
-using AionCoreBot.Application.Services;
-using AionCoreBot.Domain.Models;
+﻿using AionCoreBot.Domain.Models;
 using AionCoreBot.Helpers;
 using AionCoreBot.Helpers.Converters;
 using AionCoreBot.Infrastructure.Comms.Websocket;
@@ -9,42 +7,52 @@ using AionCoreBot.Worker;
 using AionCoreBot.Worker.Interfaces;
 using AionCoreBot.Worker.Services;
 using System.Threading;
+using Microsoft.Extensions.Configuration;
+using AionCoreBot.Application.Signals.Interfaces;
+using AionCoreBot.Application.Maintenance;
+using AionCoreBot;
+using AionCoreBot.Application.Analysis.Indicators;
+using AionCoreBot.Application.Analysis.Interfaces;
+using AionCoreBot.Application.Candles.Interfaces;
+using AionCoreBot.Application.Candles.Services;
+using AionCoreBot.Application.Signals.Services;
+using AionCoreBot.Application.Strategy.Interfaces;
+using AionCoreBot.Application.Strategy.Services;
+using AionCoreBot.Infrastructure.Comms.Clients;
+using AionCoreBot.Infrastructure.Data;
+using AionCoreBot.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 public class BotWorker
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
-    private readonly BinanceWebSocketService _webSocketService;
 
-    public BotWorker(IServiceProvider serviceProvider, IConfiguration configuration, BinanceWebSocketService webSocketService)
+    public BotWorker(IServiceProvider serviceProvider, IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _configuration = configuration;
-        _webSocketService = webSocketService;
     }
+
     public async Task RunAsync(CancellationToken stoppingToken)
     {
         var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
-        var WebSocketSwitch = _configuration.GetSection("BinanceExchange:Switches:WebSocketSwitch").Get<bool>();
 
-        #region Initialisation
-        Console.WriteLine("[BOOT] Clearing old candle and indicator data...");
-        await ClearAllDataAsync();
-
-        Task? webSocketTask = null;
-
-        if (WebSocketSwitch)
+        #region Initialisatie
+        Console.WriteLine("[BOOT] Cleaning up old data...");
+        using (var scope = _serviceProvider.CreateScope())
         {
-            Console.WriteLine("[BOOT] Starting WebSocket...");
-            webSocketTask = _webSocketService.StartAsync(symbols, stoppingToken);
-        }
-        else
-        {
-            Console.WriteLine("[BOOT] WebSocket is disabled. Skipping WebSocket initialization.");
+            var cleanupService = scope.ServiceProvider.GetRequiredService<IDataCleanupService>();
+            await cleanupService.ClearAllDataAsync();
         }
 
-            Console.WriteLine("[BOOT] Starting historical initialization...");
-        await DownloadHistoricalCandlesAsync(stoppingToken);
+        Console.WriteLine("[BOOT] Downloading historical candles...");
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var candleService = scope.ServiceProvider.GetRequiredService<ICandleInitializationService>();
+            await candleService.DownloadHistoricalCandlesAsync(stoppingToken);
+        }
 
         Console.WriteLine("[BOOT] Calculating historical indicators...");
         using (var scope = _serviceProvider.CreateScope())
@@ -54,25 +62,21 @@ public class BotWorker
         }
 
         Console.WriteLine("[BOOT] Evaluating historical signals...");
-        await EvaluateHistoricalSignalsAsync(stoppingToken);
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var signalInitService = scope.ServiceProvider.GetRequiredService<ISignalInitializationService>();
+            await signalInitService.EvaluateHistoricalSignalsAsync(stoppingToken);
+        }
 
         Console.WriteLine("[BOOT] Init complete. Switching to live mode.");
         #endregion
 
-        // Periodieke aggregatie opstarten
         await StartLiveLoopAsync(stoppingToken);
-
-        if(WebSocketSwitch && webSocketTask != null)
-        {          
-            await webSocketTask;
-        }
-
     }
+
     public async Task StartLiveLoopAsync(CancellationToken stoppingToken)
     {
-        Console.WriteLine("[LIVE] Starting live aggregation and strategy execution...");
-        var sync = new BinanceTimeSynchronizer(); // eventueel injecteren
-        var nextStrategyTime = DateTime.UtcNow.RoundUpToNextHour(); // helper extension
+        DateTime lastStrategyExecutionHour = DateTime.MinValue;
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -80,123 +84,30 @@ public class BotWorker
             {
                 using var scope = _serviceProvider.CreateScope();
 
+                // Aggregator elke minuut
                 var aggregator = scope.ServiceProvider.GetRequiredService<CandleAggregator>();
-                Console.WriteLine($"[LIVE] Aggregating candles at {DateTime.UtcNow:HH:mm:ss}...");
                 await aggregator.AggregateAsync();
 
-                if (DateTime.UtcNow >= nextStrategyTime)
+                // Strategie check
+                var now = DateTime.UtcNow;
+                var currentHour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0);
+
+                if (currentHour > lastStrategyExecutionHour)
                 {
                     var strategyService = scope.ServiceProvider.GetRequiredService<IStrategyService>();
                     await strategyService.ExecuteStrategyAsync(stoppingToken);
+                    lastStrategyExecutionHour = currentHour;
 
-                    nextStrategyTime = nextStrategyTime.AddHours(1); // of re-sync via Binance
-                    Console.WriteLine($"[STRATEGY] Executed. Next at {nextStrategyTime:HH:mm:ss}");
+                    Console.WriteLine($"[STRATEGY] Uitgevoerd om {currentHour:HH:mm} UTC");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[LIVE ERROR] {ex.Message}");
+                Console.WriteLine($"[BOTWORKER ERROR] {ex.Message}");
             }
 
-            // Delay tot volgende minuut
-            var delay = sync.GetTimeUntilNextMinuteCandle();
-            await Task.Delay(delay, stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
         }
     }
-
-
-    private async Task ClearAllDataAsync()
-    {
-        using var scope = _serviceProvider.CreateScope();
-
-        var candleRepository = scope.ServiceProvider.GetRequiredService<ICandleRepository>();
-        var emaRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<EMAResult>>();
-        var rsiRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<RSIResult>>();
-        var atrRepository = scope.ServiceProvider.GetRequiredService<IIndicatorRepository<ATRResult>>();
-        var signalRepository = scope.ServiceProvider.GetRequiredService<ISignalEvaluationRepository>();
-
-        await candleRepository.ClearAllAsync();
-        await emaRepository.ClearAllAsync();
-        await rsiRepository.ClearAllAsync();
-        await atrRepository.ClearAllAsync();
-        await signalRepository.ClearAllAsync();
-    }
-    private async Task DownloadHistoricalCandlesAsync(CancellationToken stoppingToken)
-    {
-        using var scope = _serviceProvider.CreateScope();
-
-        var candleDownloadService = scope.ServiceProvider.GetRequiredService<ICandleDownloadService>();
-        var candleRepository = scope.ServiceProvider.GetRequiredService<ICandleRepository>();
-
-        var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
-        var intervals = _configuration.GetSection("TimeIntervals:AvailableIntervals").Get<List<string>>() ?? new();
-
-        DateTime now = DateTime.UtcNow;
-
-        Console.WriteLine("[INIT] Downloading 14 days of historical candles...");
-
-        foreach (var symbol in symbols)
-        {
-            foreach (var interval in intervals)
-            {
-                DateTime from = now.AddDays(-14);
-                DateTime to = now;
-
-                var candles = await candleDownloadService.GetHistoricalCandlesAsync(symbol, interval, from, to);
-
-                if (candles != null && candles.Any())
-                {
-                    Console.WriteLine($"[INIT] {candles.Count} candles for {symbol} ({interval})");
-
-                    foreach (var candle in candles)
-                        await candleRepository.AddAsync(candle);
-
-                    await candleRepository.SaveChangesAsync();
-                }
-            }
-        }
-
-        Console.WriteLine("[INIT] Candle download complete.");
-    }
-    private async Task EvaluateHistoricalSignalsAsync(CancellationToken stoppingToken)
-    {
-        using var scope = _serviceProvider.CreateScope();
-
-        var candleRepository = scope.ServiceProvider.GetRequiredService<ICandleRepository>();
-        var signalEvaluator = scope.ServiceProvider.GetRequiredService<ISignalEvaluatorService>();
-
-        var symbols = _configuration.GetSection("BinanceExchange:EURPairs").Get<List<string>>() ?? new();
-        var intervals = _configuration.GetSection("TimeIntervals:AvailableIntervals").Get<List<string>>() ?? new();
-
-        foreach (var symbol in symbols)
-        {
-            var evaluationIntervals = new[] { "1h", "4h", "1d" };
-
-            foreach (var interval in intervals.Where(i => evaluationIntervals.Contains(i)))
-            {
-                var candles = await candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
-
-                if (candles != null && candles.Any())
-                {
-                    var evaluationPoints = candles  .Select(c => c.CloseTime.RoundUpToNextMinute())
-                                                    .Distinct()
-                                                    .OrderBy(t => t)
-                                                    .ToList();
-
-
-
-                    if (evaluationPoints.Count > 0)
-                    {
-                        Console.WriteLine($"[INIT] Evaluating signals for {symbol} ({interval})...");
-                        await signalEvaluator.EvaluateHistoricalSignalsAsync(symbol, interval, evaluationPoints);
-                    }
-                }
-            }
-        }
-
-        Console.WriteLine("[INIT] Historical signal evaluation complete.");
-    }
-
-
 
 }

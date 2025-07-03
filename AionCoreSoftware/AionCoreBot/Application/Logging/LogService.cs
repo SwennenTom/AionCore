@@ -1,12 +1,11 @@
-﻿using AionCoreBot.Application.Interfaces;
-using AionCoreBot.Domain.Models;
+﻿using AionCoreBot.Domain.Models;
 using AionCoreBot.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Application.Services
+namespace AionCoreBot.Application.Logging
 {
     public class LogService : ILogService
     {

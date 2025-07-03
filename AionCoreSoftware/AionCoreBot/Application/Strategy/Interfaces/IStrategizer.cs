@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Application.Interfaces
+namespace AionCoreBot.Application.Strategy.Interfaces
 {
     public interface IStrategizer
     {

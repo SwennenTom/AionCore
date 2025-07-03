@@ -1,4 +1,4 @@
-﻿using AionCoreBot.Application.Interfaces.IAnalyzers;
+﻿using AionCoreBot.Application.Analysis.Interfaces;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Worker.Interfaces;
 

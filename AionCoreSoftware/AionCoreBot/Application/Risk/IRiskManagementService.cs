@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Application.Interfaces
+namespace AionCoreBot.Application.Risk.Interfaces
 {
     public interface IRiskManagementService
     {

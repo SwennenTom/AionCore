@@ -3,7 +3,7 @@ using AionCoreBot.Domain.Enums;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-namespace AionCoreBot.Application.Services
+namespace AionCoreBot.Application.Trades.Interfaces
 {
     public interface ITradeManager
     {

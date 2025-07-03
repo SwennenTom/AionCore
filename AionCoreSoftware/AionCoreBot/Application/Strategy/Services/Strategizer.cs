@@ -1,4 +1,4 @@
-﻿using AionCoreBot.Application.Interfaces;
+﻿using AionCoreBot.Application.Strategy.Interfaces;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
 using System;
@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Application.Services
+namespace AionCoreBot.Application.Strategy.Services
 {
     public class Strategizer : IStrategizer
     {
@@ -24,27 +24,45 @@ namespace AionCoreBot.Application.Services
             if (signals == null || !signals.Any())
                 throw new ArgumentNullException(nameof(signals));
 
-            var weightedScores = new Dictionary<TradeAction, decimal>
-        {
-            { TradeAction.Buy, 0 },
-            { TradeAction.Sell, 0 },
-            { TradeAction.Hold, 0 }
-        };
+            var weightedScores = new Dictionary<TradeAction, decimal>();
 
             foreach (var signal in signals)
             {
+                if (!weightedScores.ContainsKey(signal.ProposedAction))
+                    weightedScores[signal.ProposedAction] = 0;
+
                 var weight = signal.ConfidenceScore ?? 1m;
                 weightedScores[signal.ProposedAction] += weight;
             }
 
             var ordered = weightedScores.OrderByDescending(kv => kv.Value).ToList();
+
+            if (ordered.Count < 2)
+            {
+                // Te weinig verschillende acties om te vergelijken, default naar Hold
+                var singleAction = ordered.FirstOrDefault();
+                var action = singleAction.Key;
+                var score = singleAction.Value;
+
+                return Task.FromResult(new TradeDecision
+                {
+                    Symbol = signals.First().Symbol,
+                    Interval = signals.First().Interval,
+                    Action = score >= _minimumConfidenceThreshold ? action : TradeAction.Hold,
+                    Reason = score >= _minimumConfidenceThreshold
+                        ? $"Alleen actie {action} met score {score:N2} beschikbaar"
+                        : "Te lage confidence score, default naar Hold",
+                    DecisionTime = DateTime.UtcNow
+                });
+            }
+
             var best = ordered[0];
             var secondBest = ordered[1];
 
             bool aboveThreshold = best.Value >= _minimumConfidenceThreshold;
-            bool clearlyBetter = (best.Value - secondBest.Value) >= _minimumActionSeparation;
+            bool clearlyBetter = best.Value - secondBest.Value >= _minimumActionSeparation;
 
-            TradeAction finalAction = (aboveThreshold && clearlyBetter)
+            TradeAction finalAction = aboveThreshold && clearlyBetter
                 ? best.Key
                 : TradeAction.Hold;
 
@@ -69,5 +87,6 @@ namespace AionCoreBot.Application.Services
 
             return Task.FromResult(decision);
         }
+
     }
 }

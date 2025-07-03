@@ -1,10 +1,12 @@
 ﻿using AionCoreBot.Domain.Models;
 using AionCoreBot.Domain.Enums;
+using AionCoreBot.Application.Trades.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AionCoreBot.Application.Risk.Services;
 
-namespace AionCoreBot.Application.Services
+namespace AionCoreBot.Application.Trades.Services
 {
     public class TradeManager : ITradeManager
     {
@@ -65,7 +67,7 @@ namespace AionCoreBot.Application.Services
             if (!trade.ClosePrice.HasValue) return 0m;
 
             var priceDifference = trade.ClosePrice.Value - trade.OpenPrice;
-            var direction = (trade.EntryAction == TradeAction.Buy || trade.EntryAction == TradeAction.LimitBuy) ? 1 : -1;
+            var direction = trade.EntryAction == TradeAction.Buy || trade.EntryAction == TradeAction.LimitBuy ? 1 : -1;
             return priceDifference * trade.Quantity * direction;
         }
 

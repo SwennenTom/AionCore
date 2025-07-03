@@ -1,9 +1,9 @@
-﻿using AionCoreBot.Application.Interfaces;
+﻿using AionCoreBot.Application.Risk.Interfaces;
 using AionCoreBot.Domain.Enums;
 using System;
 using System.Collections.Generic;
 
-namespace AionCoreBot.Application.Services
+namespace AionCoreBot.Application.Risk.Services
 {
     public class RiskManagementService : IRiskManagementService
     {

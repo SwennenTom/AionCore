@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
 
-namespace AionCoreBot.Application.Interfaces
+namespace AionCoreBot.Application.Logging
 {
     public interface ILogService
     {

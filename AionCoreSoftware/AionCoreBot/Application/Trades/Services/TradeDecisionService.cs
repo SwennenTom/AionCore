@@ -1,11 +1,11 @@
-﻿using AionCoreBot.Application.Interfaces;
+﻿using AionCoreBot.Application.Risk.Interfaces;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AionCoreBot.Application.Services
+namespace AionCoreBot.Application.Trades.Services
 {
     public class TradeDecisionService
     {
