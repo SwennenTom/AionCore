@@ -8,7 +8,7 @@ namespace AionCoreBot.Application.Risk.Services
     public class RiskManagementService : IRiskManagementService
     {
         // Aannames: Simpel configurabel percentage risico
-        private const decimal DefaultRiskPercentage = 0.01m; // 1% risico per trade
+        private const decimal DefaultRiskPercentage = 0.1m; // 10% risico per trade
         private const decimal FakeAccountBalance = 10_000m;   // Dummy balans in USDT
         private readonly Dictionary<string, decimal> _maxPositionSizes = new(); // Eventueel later vullen met echte limieten
 

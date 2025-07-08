@@ -14,6 +14,9 @@ namespace AionCoreBot.Infrastructure.Data
         }
 
         // DbSets
+        public DbSet<Account> Accounts => Set<Account>();
+        public DbSet<AccountBalance> AccountBalances => Set<AccountBalance>();
+        public DbSet<Position> Positions => Set<Position>();
         public DbSet<Trade> Trades { get; set; }
         public DbSet<TradeDecision> TradeDecisions { get; set; }
         public DbSet<SignalEvaluationResult> SignalEvaluations { get; set; }
