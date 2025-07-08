@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using AionCoreBot.Application.Signals.Interfaces;
 using AionCoreBot.Application.Maintenance;
 using AionCoreBot;
+using AionCoreBot.Application.Account.Interfaces;
 using AionCoreBot.Application.Analysis.Indicators;
 using AionCoreBot.Application.Analysis.Interfaces;
 using AionCoreBot.Application.Candles.Interfaces;
@@ -28,11 +29,13 @@ public class BotWorker
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
+    private readonly IAccountSyncService _accountSyncService;
 
-    public BotWorker(IServiceProvider serviceProvider, IConfiguration configuration)
+    public BotWorker(IServiceProvider serviceProvider, IConfiguration configuration, IAccountSyncService accountSyncService)
     {
         _serviceProvider = serviceProvider;
         _configuration = configuration;
+        _accountSyncService = accountSyncService;
     }
 
     public async Task RunAsync(CancellationToken stoppingToken)
@@ -46,6 +49,10 @@ public class BotWorker
             var cleanupService = scope.ServiceProvider.GetRequiredService<IDataCleanupService>();
             await cleanupService.ClearAllDataAsync();
         }
+
+        Console.WriteLine("[BOOT] Fetching Account Data");
+        await _accountSyncService.InitializeAsync();
+
 
         Console.WriteLine("[BOOT] Downloading historical candles...");
         using (var scope = _serviceProvider.CreateScope())

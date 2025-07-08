@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace AionCoreBot.Domain.Models
 {
-    public class AccountBalance
+    public class BalanceHistory
     {
-        [Key]
         public int Id { get; set; }
 
-        public string Asset { get; set; } = null!; // bv. "EUR", "USDT", "BTC"
+        public string Asset { get; set; } = string.Empty;
         public decimal Amount { get; set; }
 
-        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
-
 }
