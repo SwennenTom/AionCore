@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Analysis.Interfaces
+
 {
     public interface IAnalyzer
     {
