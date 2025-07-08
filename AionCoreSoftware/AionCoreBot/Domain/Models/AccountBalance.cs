@@ -8,9 +8,9 @@ namespace AionCoreBot.Domain.Models
 {
     public class AccountBalance
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
+        public int Id { get; set; }
 
-        public Guid AccountId { get; set; }
+        public int AccountId { get; set; }
         public Account Account { get; set; } = null!;
 
         public string Asset { get; set; } = null!; // bv. "EUR", "USDT", "BTC"

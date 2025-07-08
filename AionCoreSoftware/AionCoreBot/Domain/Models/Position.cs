@@ -9,9 +9,9 @@ namespace AionCoreBot.Domain.Models
 {
     public class Position
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
+        public int Id { get; set; }
 
-        public Guid AccountId { get; set; }
+        public int AccountId { get; set; }
         public Account Account { get; set; } = null!;
 
         public string Symbol { get; set; } = null!; // bv. "BTCEUR"
@@ -22,10 +22,10 @@ namespace AionCoreBot.Domain.Models
         public DateTime OpenedAt { get; set; }
         public DateTime? ClosedAt { get; set; }
 
-        public Guid? OpenTradeId { get; set; }
+        public int? OpenTradeId { get; set; }
         public Trade? OpenTrade { get; set; }
 
-        public Guid? CloseTradeId { get; set; }
+        public int? CloseTradeId { get; set; }
         public Trade? CloseTrade { get; set; }
     }
 

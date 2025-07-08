@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace AionCoreBot.Infrastructure.Persistence.Migrations
+namespace AionCoreBot.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250624182658_roundedtime")]
-    partial class roundedtime
+    [Migration("20250708143038_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -55,6 +55,60 @@ namespace AionCoreBot.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ATRResults");
+                });
+
+            modelBuilder.Entity("AionCoreBot.Domain.Models.Account", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BrokerName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExternalAccountId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Accounts");
+                });
+
+            modelBuilder.Entity("AionCoreBot.Domain.Models.AccountBalance", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccountId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Asset")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Available")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.ToTable("AccountBalances");
                 });
 
             modelBuilder.Entity("AionCoreBot.Domain.Models.Candle", b =>
@@ -156,6 +210,51 @@ namespace AionCoreBot.Infrastructure.Persistence.Migrations
                     b.ToTable("Logs");
                 });
 
+            modelBuilder.Entity("AionCoreBot.Domain.Models.Position", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccountId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("CloseTradeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("EntryPrice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("OpenTradeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Side")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("CloseTradeId");
+
+                    b.HasIndex("OpenTradeId");
+
+                    b.ToTable("Positions");
+                });
+
             modelBuilder.Entity("AionCoreBot.Domain.Models.RSIResult", b =>
                 {
                     b.Property<int>("Id")
@@ -199,6 +298,9 @@ namespace AionCoreBot.Infrastructure.Persistence.Migrations
                     b.Property<decimal?>("ConfidenceScore")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("EvaluationTime")
                         .HasColumnType("TEXT");
 
@@ -235,6 +337,9 @@ namespace AionCoreBot.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("AccountId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("BrokerOrderReference")
@@ -294,6 +399,8 @@ namespace AionCoreBot.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AccountId");
+
                     b.ToTable("Trades");
                 });
 
@@ -323,6 +430,58 @@ namespace AionCoreBot.Infrastructure.Persistence.Migrations
                     b.HasKey("Symbol", "Interval", "DecisionTime");
 
                     b.ToTable("TradeDecisions");
+                });
+
+            modelBuilder.Entity("AionCoreBot.Domain.Models.AccountBalance", b =>
+                {
+                    b.HasOne("AionCoreBot.Domain.Models.Account", "Account")
+                        .WithMany("Balances")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("AionCoreBot.Domain.Models.Position", b =>
+                {
+                    b.HasOne("AionCoreBot.Domain.Models.Account", "Account")
+                        .WithMany("Positions")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AionCoreBot.Domain.Models.Trade", "CloseTrade")
+                        .WithMany()
+                        .HasForeignKey("CloseTradeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AionCoreBot.Domain.Models.Trade", "OpenTrade")
+                        .WithMany()
+                        .HasForeignKey("OpenTradeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Account");
+
+                    b.Navigation("CloseTrade");
+
+                    b.Navigation("OpenTrade");
+                });
+
+            modelBuilder.Entity("AionCoreBot.Domain.Models.Trade", b =>
+                {
+                    b.HasOne("AionCoreBot.Domain.Models.Account", null)
+                        .WithMany("Trades")
+                        .HasForeignKey("AccountId");
+                });
+
+            modelBuilder.Entity("AionCoreBot.Domain.Models.Account", b =>
+                {
+                    b.Navigation("Balances");
+
+                    b.Navigation("Positions");
+
+                    b.Navigation("Trades");
                 });
 #pragma warning restore 612, 618
         }

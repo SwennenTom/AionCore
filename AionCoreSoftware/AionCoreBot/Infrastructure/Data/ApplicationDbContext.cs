@@ -75,6 +75,17 @@ namespace AionCoreBot.Infrastructure.Data
             modelBuilder.Entity<LogEntry>()
                 .Property(l => l.ExceptionDetails)
                 .HasMaxLength(2000);
+            modelBuilder.Entity<Position>()
+        .HasOne(p => p.OpenTrade)
+        .WithMany()
+        .HasForeignKey(p => p.OpenTradeId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Position>()
+                .HasOne(p => p.CloseTrade)
+                .WithMany()
+                .HasForeignKey(p => p.CloseTradeId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -8,7 +8,7 @@ namespace AionCoreBot.Domain.Models
 {
     public class Account
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
+        public int Id { get; set; }
         public string BrokerName { get; set; } = null!;
         public string ExternalAccountId { get; set; } = null!;
 
