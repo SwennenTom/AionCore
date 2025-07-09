@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Account.Services
 {
-    public class MockBalanceProvider : IBalanceProvider
+    public class BalanceProvider : IBalanceProvider
     {//MOCK DATA, VERWIJDER DIT IN ECHTE IMPLEMENTATIE
         public Task<Dictionary<string, decimal>> GetBalancesAsync()
         {

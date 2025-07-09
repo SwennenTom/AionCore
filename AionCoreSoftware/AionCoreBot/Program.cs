@@ -1,5 +1,7 @@
 using AionCoreBot;
 
+using AionCoreBot.Application.Account.Interfaces;
+using AionCoreBot.Application.Account.Services;
 using AionCoreBot.Application.Analysis.Indicators;
 using AionCoreBot.Application.Analysis.Interfaces;
 using AionCoreBot.Application.Candles.Interfaces;
@@ -26,6 +28,12 @@ using Microsoft.Extensions.Configuration;
 
 
 var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddScoped<IAccountSyncService, AccountSyncService>();
+builder.Services.AddScoped<IAccountBalanceRepository, AccountBalanceRepository>();
+builder.Services.AddScoped<IBalanceHistoryRepository, BalanceHistoryRepository>();
+builder.Services.AddScoped<IBalanceProvider, BalanceProvider>();
+
 builder.Services.AddScoped<BotWorker>();
 builder.Services.AddScoped<CandleAggregator>();
 builder.Services.AddScoped<IAnalyzerWorker, AnalyzerWorker>();

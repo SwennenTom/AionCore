@@ -31,7 +31,7 @@ namespace AionCoreBot.Application.Strategy.Services
                 if (!weightedScores.ContainsKey(signal.ProposedAction))
                     weightedScores[signal.ProposedAction] = 0;
 
-                var weight = signal.ConfidenceScore ?? 1m;
+                var weight = signal.ConfidenceScore ?? 0m;
                 weightedScores[signal.ProposedAction] += weight;
             }
 

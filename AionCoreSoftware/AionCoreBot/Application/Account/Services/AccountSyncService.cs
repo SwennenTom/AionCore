@@ -61,7 +61,7 @@ namespace AionCoreBot.Application.Account.Services
                         existing.Amount = amount;
                         existing.LastUpdated = DateTime.UtcNow;
                         updatedList.Add(existing);
-                        historyList.Add(new BalanceHistory { Asset = asset, Amount = amount });
+                        historyList.Add(new BalanceHistory { Asset = asset, Amount = amount, Timestamp = DateTime.UtcNow });
                     }
                 }
                 else
