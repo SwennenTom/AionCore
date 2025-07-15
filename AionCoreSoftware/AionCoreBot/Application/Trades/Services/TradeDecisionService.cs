@@ -24,49 +24,54 @@ namespace AionCoreBot.Application.Trades.Services
         /// <param name="entryPrice">De prijs waartegen de trade geopend zou worden.</param>
         /// <param name="cancellationToken"></param>
         /// <returns>De gevalideerde en mogelijk aangepaste trade beslissing.</returns>
-        public Task<TradeDecision> ValidateTradeDecisionAsync(
-            TradeDecision tradeDecision,
-            decimal currentPositionSize,
-            decimal entryPrice,
-            CancellationToken cancellationToken = default)
+        public async Task<TradeDecision> ValidateTradeDecisionAsync(
+    TradeDecision tradeDecision,
+    decimal currentPositionSize,
+    decimal entryPrice,
+    CancellationToken ct = default)
         {
-            if (tradeDecision == null)
+            if (tradeDecision is null)
                 throw new ArgumentNullException(nameof(tradeDecision));
-
             if (entryPrice <= 0)
-                throw new ArgumentException("Entry price moet groter dan 0 zijn.", nameof(entryPrice));
+                throw new ArgumentException("Entry price moet > 0 zijn.", nameof(entryPrice));
 
-            // Bereken maximaal risico bedrag (bv. in USD)
-            var maxRiskAmount = _riskManagementService.CalculateMaxRiskAmount(tradeDecision.Symbol, currentPositionSize);
+            /* 1️⃣  Maximaal risicobedrag asynchroon ophalen */
+            decimal maxRiskAmount =
+                await _riskManagementService.CalculateMaxRiskAmountAsync(
+                        tradeDecision.Symbol,
+                        currentPositionSize,
+                        ct);
 
-            // Bepaal voorgestelde positie grootte volgens risk management (aantal eenheden)
-            var suggestedQuantity = _riskManagementService.CalculatePositionSize(tradeDecision.Symbol, maxRiskAmount, entryPrice);
+            /* 2️⃣  Positiegrootte berekenen met het decimale resultaat */
+            decimal suggestedQuantity =
+                _riskManagementService.CalculatePositionSize(
+                        tradeDecision.Symbol,
+                        maxRiskAmount,
+                        entryPrice);
 
-            // Check of de voorgestelde trade binnen risk limieten valt
-            bool isWithinLimits = _riskManagementService.IsTradeWithinRiskLimits(tradeDecision.Symbol, tradeDecision.Action, suggestedQuantity);
+            /* 3️⃣  Risk-check */
+            bool within =
+                _riskManagementService.IsTradeWithinRiskLimits(
+                        tradeDecision.Symbol,
+                        tradeDecision.Action,
+                        suggestedQuantity);
 
-            if (!isWithinLimits)
+            if (!within)
             {
-                // Niet toegestaan, actie omzetten naar Hold
                 tradeDecision.Action = TradeAction.Hold;
-
-                // Reset quantity naar 0
                 tradeDecision.Quantity = 0;
-
-                // Update reden met toelichting
-                tradeDecision.Reason = (tradeDecision.Reason ?? "") + " | Trade geannuleerd door Risk Management: positie te groot.";
+                tradeDecision.Reason += " | Trade geannuleerd door Risk Management: positie te groot.";
             }
             else
             {
-                // Trade is OK, update quantity en reden
                 tradeDecision.Quantity = suggestedQuantity;
-                tradeDecision.Reason = (tradeDecision.Reason ?? "") + $" | Goedgekeurd door Risk Management: max risico {maxRiskAmount:N2}, positie grootte {suggestedQuantity:N4} @ prijs {entryPrice:N2}.";
+                tradeDecision.Reason +=
+                    $" | Goedgekeurd: max risico {maxRiskAmount:N2}, qty {suggestedQuantity:N4} @ {entryPrice:N2}.";
             }
 
-            // Update beslissingsmoment
             tradeDecision.DecisionTime = DateTime.UtcNow;
-
-            return Task.FromResult(tradeDecision);
+            return tradeDecision;
         }
+
     }
 }

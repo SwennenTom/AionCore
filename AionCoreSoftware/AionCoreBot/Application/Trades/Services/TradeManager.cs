@@ -3,75 +3,64 @@ using AionCoreBot.Domain.Enums;
 using AionCoreBot.Application.Trades.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
-using AionCoreBot.Application.Risk.Services;
 
 namespace AionCoreBot.Application.Trades.Services
 {
     public class TradeManager : ITradeManager
     {
         private readonly List<Trade> _openTrades = new();
+        private int _tradeIdCounter = 0;
+        private int NextId() => ++_tradeIdCounter;
 
-        public Task<Trade> OpenTradeAsync(TradeDecision decision, decimal executionPrice)
+        public Task<Trade> OpenTradeAsync(
+            TradeDecision decision,
+            decimal executionPrice,
+            decimal quantity,
+            CancellationToken ct = default)
         {
             var trade = new Trade
             {
-                Id = GenerateTradeId(),
+                Id = NextId(),
                 Symbol = decision.Symbol,
                 Interval = decision.Interval,
                 EntryAction = decision.Action,
                 OpenTime = DateTime.UtcNow,
                 OpenPrice = executionPrice,
-                Quantity = decision.Quantity ?? 0,
-                Strategy = "StrategizerName", // eventueel dynamisch meegeven
+                Quantity = quantity,
+                Strategy = "Strategizer",     // evt. meegeven
                 Reason = decision.Reason,
-                Exchange = "DefaultExchange"
+                Exchange = "Paper"            // of “Binance”
             };
 
             _openTrades.Add(trade);
 
-            // Hier kan je later order executie aanroepen via TradeExecutionService
-
+            // TODO: echte order-uitvoering
             return Task.FromResult(trade);
         }
 
-        public Task<Trade> CloseTradeAsync(Trade trade, TradeAction exitAction, decimal executionPrice)
+        public Task<Trade> CloseTradeAsync(
+            Trade trade,
+            TradeAction exitAction,
+            decimal executionPrice,
+            CancellationToken ct = default)
         {
             trade.ExitAction = exitAction;
             trade.CloseTime = DateTime.UtcNow;
             trade.ClosePrice = executionPrice;
-            trade.ProfitLoss = CalculatePnL(trade);
-            // Mogelijk fees bijwerken
+            trade.ProfitLoss = (trade.ClosePrice.Value - trade.OpenPrice)
+                               * trade.Quantity
+                               * (trade.EntryAction is TradeAction.Buy or TradeAction.LimitBuy ? 1 : -1);
 
-            // Trade sluiten uit open lijst
             _openTrades.Remove(trade);
-
-            // Hier ook update order uitvoeren via TradeExecutionService
-
             return Task.FromResult(trade);
         }
 
-        public Task<IReadOnlyList<Trade>> GetOpenTradesAsync()
-        {
-            return Task.FromResult((IReadOnlyList<Trade>)_openTrades.AsReadOnly());
-        }
+        public Task<IReadOnlyList<Trade>> GetOpenTradesAsync(CancellationToken ct = default)
+            => Task.FromResult((IReadOnlyList<Trade>)_openTrades.AsReadOnly());
 
-        public Task UpdateTradeAsync(Trade trade)
-        {
-            // Placeholder om trade updates door te voeren, bvb na orderstatus updates
-            return Task.CompletedTask;
-        }
-
-        private decimal CalculatePnL(Trade trade)
-        {
-            if (!trade.ClosePrice.HasValue) return 0m;
-
-            var priceDifference = trade.ClosePrice.Value - trade.OpenPrice;
-            var direction = trade.EntryAction == TradeAction.Buy || trade.EntryAction == TradeAction.LimitBuy ? 1 : -1;
-            return priceDifference * trade.Quantity * direction;
-        }
-
-        private int _tradeIdCounter = 0;
-        private int GenerateTradeId() => ++_tradeIdCounter;
+        public Task UpdateTradeAsync(Trade trade, CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 }

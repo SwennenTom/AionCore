@@ -7,24 +7,19 @@ namespace AionCoreBot.Application.Trades.Interfaces
 {
     public interface ITradeManager
     {
-        /// <summary>
-        /// Opent een nieuwe trade gebaseerd op de trade beslissing en marktdata.
-        /// </summary>
-        Task<Trade> OpenTradeAsync(TradeDecision decision, decimal executionPrice);
+        Task<Trade> OpenTradeAsync(
+            TradeDecision decision,
+            decimal executionPrice,
+            decimal quantity,
+            CancellationToken ct = default);
 
-        /// <summary>
-        /// Sluit een openstaande trade (gebaseerd op exit actie).
-        /// </summary>
-        Task<Trade> CloseTradeAsync(Trade trade, TradeAction exitAction, decimal executionPrice);
+        Task<Trade> CloseTradeAsync(
+            Trade trade,
+            TradeAction exitAction,
+            decimal executionPrice,
+            CancellationToken ct = default);
 
-        /// <summary>
-        /// Haalt openstaande trades op (indien van toepassing).
-        /// </summary>
-        Task<IReadOnlyList<Trade>> GetOpenTradesAsync();
-
-        /// <summary>
-        /// Update trade status en data na order uitvoering.
-        /// </summary>
-        Task UpdateTradeAsync(Trade trade);
+        Task<IReadOnlyList<Trade>> GetOpenTradesAsync(CancellationToken ct = default);
+        Task UpdateTradeAsync(Trade trade, CancellationToken ct = default);
     }
 }

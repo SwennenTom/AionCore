@@ -1,10 +1,13 @@
-﻿using AionCoreBot.Application.Strategy.Interfaces;
+﻿using AionCoreBot.Application.Account.Interfaces;
+using AionCoreBot.Application.Risk.Interfaces;
+using AionCoreBot.Application.Strategy.Interfaces;
+using AionCoreBot.Application.Trades.Interfaces;
+using AionCoreBot.Domain.Enums;
 using AionCoreBot.Infrastructure.Interfaces;
-using AionCoreBot.Infrastructure.Repositories;
+using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Strategy.Services
@@ -13,32 +16,60 @@ namespace AionCoreBot.Application.Strategy.Services
     {
         private readonly ISignalEvaluationRepository _signalRepository;
         private readonly IStrategizer _strategizer;
+        private readonly IRiskManagementService _riskManager;
+        private readonly IBalanceProvider _balanceProvider;
+        private readonly ITradeManager _tradeManager;
+        private readonly IConfiguration _config;
 
-        public StrategyService(ISignalEvaluationRepository signalRepository, IStrategizer strategizer)
+        public StrategyService(
+            ISignalEvaluationRepository signalRepository,
+            IStrategizer strategizer,
+            IRiskManagementService riskManager,
+            IBalanceProvider balanceProvider,
+            ITradeManager tradeManager,
+            IConfiguration config)
         {
             _signalRepository = signalRepository;
             _strategizer = strategizer;
+            _riskManager = riskManager;
+            _balanceProvider = balanceProvider;
+            _tradeManager = tradeManager;
+            _config = config;
         }
 
-        public async Task ExecuteStrategyAsync(CancellationToken cancellationToken = default)
+        public async Task ExecuteStrategyAsync(CancellationToken ct = default)
         {
-            var signals = await _signalRepository.GetLatestSignalsAsync(); // dit moet gegroepeerd kunnen worden
+            var latest = await _signalRepository.GetLatestSignalsAsync();
+            var grouped = latest.GroupBy(s => (s.Symbol, s.Interval));
 
-            var grouped = signals
-                .GroupBy(s => (s.Symbol, s.Interval))
-                .ToList();
-
-            foreach (var group in grouped)
+            foreach (var grp in grouped)
             {
-                var decision = await _strategizer.DecideTradeAsync(group.ToList(), cancellationToken);
+                var decision = await _strategizer.DecideTradeAsync(grp.ToList(), ct);
+                Console.WriteLine($"[STRATEGY] Beslissing {grp.Key.Symbol}: {decision.Action}");
 
-                Console.WriteLine($"[STRATEGY] Beslissing voor {group.Key.Symbol} ({group.Key.Interval}): {decision.Action}");
-                Console.WriteLine(decision.Reason);
+                if (decision.Action != TradeAction.Buy) continue;
 
-                // TODO: opslaan, versturen of verwerken van de beslissing
+                try
+                {
+                    decimal lastPrice = await _balanceProvider.GetLastPriceAsync(grp.Key.Symbol, ct);
+                    decimal currentPos = await _balanceProvider.GetPositionSizeAsync(grp.Key.Symbol, ct);
+                    decimal maxRisk = await _riskManager.CalculateMaxRiskAmountAsync(grp.Key.Symbol, currentPos, ct);
+                    decimal qty = _riskManager.CalculatePositionSize(grp.Key.Symbol, maxRisk, lastPrice);
+
+                    if (!_riskManager.IsTradeWithinRiskLimits(grp.Key.Symbol, decision.Action, qty))
+                    {
+                        Console.WriteLine($"[RISK] Afgekeurd voor {grp.Key.Symbol}");
+                        continue;
+                    }
+
+                    var trade = await _tradeManager.OpenTradeAsync(decision, lastPrice, qty, ct);
+                    Console.WriteLine($"[ORDER] Open {trade.Symbol} qty={trade.Quantity} @ {trade.OpenPrice}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] {grp.Key.Symbol}: {ex.Message}");
+                }
             }
         }
-
     }
-
 }
