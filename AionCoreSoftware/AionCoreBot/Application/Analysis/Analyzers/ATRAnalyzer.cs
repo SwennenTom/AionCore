@@ -150,7 +150,7 @@ namespace AionCoreBot.Application.Analysis.Analyzers
             decimal baseConfidence;
             if (percentage > thresholdPercent)
             {
-                proposedAction = TradeAction.NoBuy;
+                proposedAction = TradeAction.Hold;
                 signalDescription = $"ATR: high volatility ({percentage:P1})";
                 reason = $"ATR > {thresholdPercent:P0} of price — avoid buying";
 
@@ -160,7 +160,7 @@ namespace AionCoreBot.Application.Analysis.Analyzers
             }
             else if (percentage < lowerBound)
             {
-                proposedAction = TradeAction.NoBuy;
+                proposedAction = TradeAction.Hold;
                 signalDescription = $"ATR: too low volatility ({percentage:P1})";
                 reason = $"ATR < {lowerBound:P0} of price — no market movement";
 
@@ -170,7 +170,7 @@ namespace AionCoreBot.Application.Analysis.Analyzers
             }
             else
             {
-                proposedAction = TradeAction.OkToBuy;
+                proposedAction = TradeAction.Buy;
                 signalDescription = $"ATR: normal volatility ({percentage:P1})";
                 reason = $"ATR within acceptable range";
 

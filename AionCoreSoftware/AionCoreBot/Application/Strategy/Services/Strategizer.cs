@@ -1,92 +1,66 @@
 ﻿using AionCoreBot.Application.Strategy.Interfaces;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
-using System;
+using Microsoft.Extensions.Configuration;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AionCoreBot.Application.Strategy.Services
 {
     public class Strategizer : IStrategizer
     {
-        private readonly decimal _minimumConfidenceThreshold;
-        private readonly decimal _minimumActionSeparation;
+        private readonly decimal _minConfidence;
+        private readonly decimal _minSeparation;
 
-        public Strategizer(decimal minimumConfidenceThreshold = 2.0m, decimal minimumActionSeparation = 0.4m)
+        public Strategizer(IConfiguration cfg)
         {
-            _minimumConfidenceThreshold = minimumConfidenceThreshold;
-            _minimumActionSeparation = minimumActionSeparation;
+            _minConfidence = cfg.GetValue("Strategy:DecisionThreshold", 2.0m);
+            _minSeparation = cfg.GetValue("Strategy:MinSeparation", 0.4m);
         }
 
-        public Task<TradeDecision> DecideTradeAsync(List<SignalEvaluationResult> signals, CancellationToken cancellationToken = default)
+        public Task<TradeDecision> DecideTradeAsync(
+            List<SignalEvaluationResult> signals,
+            CancellationToken ct = default)
         {
             if (signals == null || !signals.Any())
                 throw new ArgumentNullException(nameof(signals));
 
-            var weightedScores = new Dictionary<TradeAction, decimal>();
-
-            foreach (var signal in signals)
+            // 1. Weging per TradeAction
+            var weighted = new Dictionary<TradeAction, decimal>();
+            foreach (var s in signals)
             {
-                if (!weightedScores.ContainsKey(signal.ProposedAction))
-                    weightedScores[signal.ProposedAction] = 0;
+                if (!weighted.ContainsKey(s.ProposedAction))
+                    weighted[s.ProposedAction] = 0m;
 
-                var weight = signal.ConfidenceScore ?? 0m;
-                weightedScores[signal.ProposedAction] += weight;
+                weighted[s.ProposedAction] += s.ConfidenceScore ?? 0m;
             }
 
-            var ordered = weightedScores.OrderByDescending(kv => kv.Value).ToList();
-
-            if (ordered.Count < 2)
-            {
-                // Te weinig verschillende acties om te vergelijken, default naar Hold
-                var singleAction = ordered.FirstOrDefault();
-                var action = singleAction.Key;
-                var score = singleAction.Value;
-
-                return Task.FromResult(new TradeDecision
-                {
-                    Symbol = signals.First().Symbol,
-                    Interval = signals.First().Interval,
-                    Action = score >= _minimumConfidenceThreshold ? action : TradeAction.Hold,
-                    Reason = score >= _minimumConfidenceThreshold
-                        ? $"Alleen actie {action} met score {score:N2} beschikbaar"
-                        : "Te lage confidence score, default naar Hold",
-                    DecisionTime = DateTime.UtcNow
-                });
-            }
-
+            var ordered = weighted.OrderByDescending(kv => kv.Value).ToList();
             var best = ordered[0];
-            var secondBest = ordered[1];
+            var second = ordered.Count > 1 ? ordered[1] : new(best.Key, 0m);
 
-            bool aboveThreshold = best.Value >= _minimumConfidenceThreshold;
-            bool clearlyBetter = best.Value - secondBest.Value >= _minimumActionSeparation;
+            bool above = best.Value >= _minConfidence;
+            bool better = best.Value - second.Value >= _minSeparation;
 
-            TradeAction finalAction = aboveThreshold && clearlyBetter
-                ? best.Key
-                : TradeAction.Hold;
+            var finalAction = (above && better) ? best.Key : TradeAction.Hold;
 
-            var reasonBuilder = new StringBuilder();
-            reasonBuilder.AppendLine("Beslissing op basis van gewogen confidence:");
-            foreach (var kv in weightedScores)
-                reasonBuilder.AppendLine($"- {kv.Key}: {kv.Value:N2}");
+            // 2. Motivatie opbouwen
+            var sb = new StringBuilder();
+            sb.AppendLine("Beslissing op basis van gewogen confidence:");
+            foreach (var kv in weighted)
+                sb.AppendLine($"- {kv.Key}: {kv.Value:N2}");
 
-            if (!aboveThreshold)
-                reasonBuilder.AppendLine($"Confidence te laag voor actie ({best.Value:N2} < drempel {_minimumConfidenceThreshold:N2})");
-            else if (!clearlyBetter)
-                reasonBuilder.AppendLine($"Beste actie lag te dicht bij volgende ({best.Value:N2} - {secondBest.Value:N2} < drempel {_minimumActionSeparation:N2})");
+            if (!above) sb.AppendLine($"Te lage confidence ({best.Value:N2} < {_minConfidence:N2})");
+            else if (!better)
+                sb.AppendLine($"Acties liggen te dicht bij elkaar ({best.Value:N2} vs {second.Value:N2})");
 
-            var decision = new TradeDecision
+            return Task.FromResult(new TradeDecision
             {
-                Symbol = signals.First().Symbol,
-                Interval = signals.First().Interval,
+                Symbol = signals[0].Symbol,
+                Interval = signals[0].Interval,
                 Action = finalAction,
-                Reason = reasonBuilder.ToString().Trim(),
+                Reason = sb.ToString().Trim(),
                 DecisionTime = DateTime.UtcNow
-            };
-
-            return Task.FromResult(decision);
+            });
         }
-
     }
 }
