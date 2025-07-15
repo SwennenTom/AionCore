@@ -28,6 +28,8 @@ using Microsoft.Extensions.Configuration;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+builder.Configuration.AddUserSecrets<Program>();
+
 builder.Services.AddScoped<IAccountSyncService, AccountSyncService>();
 builder.Services.AddScoped<IAccountBalanceRepository, AccountBalanceRepository>();
 builder.Services.AddScoped<IBalanceHistoryRepository, BalanceHistoryRepository>();
