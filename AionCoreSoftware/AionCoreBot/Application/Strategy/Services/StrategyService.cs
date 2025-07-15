@@ -47,6 +47,17 @@ namespace AionCoreBot.Application.Strategy.Services
                 var decision = await _strategizer.DecideTradeAsync(grp.ToList(), ct);
                 Console.WriteLine($"[STRATEGY] Beslissing {grp.Key.Symbol}: {decision.Action}");
 
+                var openTrades = await _tradeManager.GetOpenTradesAsync(ct);
+                bool alreadyOpen = openTrades.Any(t =>
+                                    t.Symbol.Equals(grp.Key.Symbol, StringComparison.OrdinalIgnoreCase)
+                                    && !t.IsClosed);
+
+                if (alreadyOpen)
+                {
+                    Console.WriteLine($"[STRATEGY] Positie voor {grp.Key.Symbol} is al open – signaal genegeerd.");
+                    continue;
+                }
+
                 if (decision.Action != TradeAction.Buy) continue;
 
                 try

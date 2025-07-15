@@ -14,11 +14,7 @@ namespace AionCoreBot.Application.Trades.Services
         private int _tradeIdCounter = 0;
         private int NextId() => ++_tradeIdCounter;
 
-        public Task<Trade> OpenTradeAsync(
-            TradeDecision decision,
-            decimal executionPrice,
-            decimal quantity,
-            CancellationToken ct = default)
+        public Task<Trade> OpenTradeAsync(TradeDecision decision, decimal executionPrice, decimal quantity, CancellationToken ct = default)
         {
             var trade = new Trade
             {
