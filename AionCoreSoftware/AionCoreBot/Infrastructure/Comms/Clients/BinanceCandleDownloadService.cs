@@ -1,100 +1,116 @@
 ﻿using AionCoreBot.Domain.Models;
-using AionCoreBot.Infrastructure.Interfaces;
+using AionCoreBot.Infrastructure.Comms.Interfaces;
+using Binance.Net.Clients;
+using Binance.Net.Enums;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Text.Json;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace AionCoreBot.Infrastructure.Comms.Clients
 {
     internal class BinanceCandleDownloadService : ICandleDownloadService
     {
-        private readonly IBinanceRestClient _restClient;
+        private readonly BinanceRestClient _restClient;
 
-        public BinanceCandleDownloadService(IBinanceRestClient restClient)
+        public BinanceCandleDownloadService(BinanceRestClient restClient)
         {
             _restClient = restClient;
         }
 
         public async Task<List<Candle>> GetHistoricalCandlesAsync(string symbol, string interval, DateTime from, DateTime to)
         {
-            const int limit = 1000;
             var candles = new List<Candle>();
-            long fromMs = ToUnixMilliseconds(from);
 
-            while (true)
+            // ✅ Map interval string → Binance.Net enum
+            if (!TryMapInterval(interval, out var klineInterval))
+                throw new ArgumentException($"Unsupported interval: {interval}");
+
+            DateTime currentFrom = from;
+
+            while (currentFrom < to)
             {
-                var url = $"/api/v3/klines?symbol={symbol.ToUpperInvariant()}&interval={interval}&limit={limit}&startTime={fromMs}";
-                var response = await _restClient.GetRawAsync(url);
+                var result = await _restClient.SpotApi.ExchangeData.GetKlinesAsync(
+                    symbol,
+                    klineInterval,
+                    startTime: currentFrom,
+                    endTime: to,
+                    limit: 1000
+                );
 
-                var parsed = JsonSerializer.Deserialize<List<JsonElement[]>>(response);
-                if (parsed == null || parsed.Count == 0)
+                if (!result.Success || result.Data == null || !result.Data.Any())
                     break;
 
-                foreach (var item in parsed)
+                foreach (var k in result.Data)
                 {
-                    var openTimeMs = item[0].GetInt64();
-                    var closeTimeMs = item[6].GetInt64();
-                    var openTime = FromUnixMilliseconds(openTimeMs);
-                    var closeTime = FromUnixMilliseconds(closeTimeMs);
+                    if (k.CloseTime > to)
+                        break;
 
-                    if (closeTime > to)
-                        return candles;
-
-                    var candle = new Candle
+                    candles.Add(new Candle
                     {
                         Symbol = symbol,
                         Interval = interval,
-                        OpenTime = openTime,
-                        CloseTime = closeTime,
-                        OpenPrice = ParseDecimal(item[1]),
-                        HighPrice = ParseDecimal(item[2]),
-                        LowPrice = ParseDecimal(item[3]),
-                        ClosePrice = ParseDecimal(item[4]),
-                        Volume = ParseDecimal(item[5]),
-                        QuoteVolume = ParseDecimal(item[7])
-                    };
-
-                    candles.Add(candle);
+                        OpenTime = k.OpenTime,
+                        CloseTime = k.CloseTime,
+                        OpenPrice = k.OpenPrice,
+                        HighPrice = k.HighPrice,
+                        LowPrice = k.LowPrice,
+                        ClosePrice = k.ClosePrice,
+                        Volume = k.Volume,
+                        QuoteVolume = k.QuoteVolume
+                    });
                 }
 
-                if (parsed.Count < limit)
-                    break;
+                // ✅ Pagination: vanaf laatste candle + 1 ms
+                currentFrom = result.Data.Last().CloseTime.AddMilliseconds(1);
 
-                fromMs = parsed[^1][0].GetInt64() + 1; // start net na de laatste openTime van vorige batch
+                // Binance levert max ~1000 → break als minder dan limit
+                if (result.Data.Count() < 1000)
+                    break;
             }
 
-            candles = candles
-                            .GroupBy(c => new { c.Symbol, c.Interval, c.OpenTime })
-                            .Select(g => g.First())
-                            .ToList();
-
-
-            return candles;
+            // ✅ Deduplicatie
+            return candles
+                .GroupBy(c => new { c.Symbol, c.Interval, c.OpenTime })
+                .Select(g => g.First())
+                .OrderBy(c => c.OpenTime)
+                .ToList();
         }
 
-        public async Task<List<Candle>> DownloadCandlesAsync(string symbol, string interval, int days)
+        public Task<List<Candle>> DownloadCandlesAsync(string symbol, string interval, int days)
         {
             var to = DateTime.UtcNow;
             var from = to.AddDays(-days);
-
-            return await GetHistoricalCandlesAsync(symbol, interval, from, to);
+            return GetHistoricalCandlesAsync(symbol, interval, from, to);
         }
 
-
-        private static decimal ParseDecimal(JsonElement element) =>
-            decimal.Parse(element.GetString() ?? "0", CultureInfo.InvariantCulture);
-
-
-
-        private static long ToUnixMilliseconds(DateTime dt) =>
-            new DateTimeOffset(dt).ToUnixTimeMilliseconds();
-
-        private static DateTime FromUnixMilliseconds(long ms) =>
-            DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime;
-
-        private static decimal ParseDecimal(object value) =>
-            Convert.ToDecimal(value.ToString(), CultureInfo.InvariantCulture);
+        private static bool TryMapInterval(string interval, out KlineInterval mapped)
+        {
+            mapped = interval switch
+            {
+                "1m" => KlineInterval.OneMinute,
+                "3m" => KlineInterval.ThreeMinutes,
+                "5m" => KlineInterval.FiveMinutes,
+                "15m" => KlineInterval.FifteenMinutes,
+                "30m" => KlineInterval.ThirtyMinutes,
+                "1h" => KlineInterval.OneHour,
+                "2h" => KlineInterval.TwoHour,
+                "4h" => KlineInterval.FourHour,
+                "6h" => KlineInterval.SixHour,
+                "8h" => KlineInterval.EightHour,
+                "12h" => KlineInterval.TwelveHour,
+                "1d" => KlineInterval.OneDay,
+                "3d" => KlineInterval.ThreeDay,
+                "1w" => KlineInterval.OneWeek,
+                _ => KlineInterval.OneMinute
+            };
+            return interval switch
+            {
+                "1m" or "3m" or "5m" or "15m" or "30m" or
+                "1h" or "2h" or "4h" or "6h" or "8h" or "12h" or
+                "1d" or "3d" or "1w" => true,
+                _ => false
+            };
+        }
     }
 }

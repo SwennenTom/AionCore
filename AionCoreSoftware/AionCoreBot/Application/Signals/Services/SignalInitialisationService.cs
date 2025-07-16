@@ -34,7 +34,7 @@ namespace AionCoreBot.Application.Signals.Services
             {
                 foreach (var interval in _intervals.Where(i => allowedIntervals.Contains(i)))
                 {
-                    Console.WriteLine($"[INIT] Evaluating historical signals for {symbol} ({interval})...");
+                    //Console.WriteLine($"[INIT] Evaluating historical signals for {symbol} ({interval})...");
                     var candles = await _candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
                     await _signalEvaluator.EvaluateAllAsync(symbol, interval, candles);
                     await _candleRepository.SaveChangesAsync();

@@ -62,7 +62,7 @@ namespace AionCoreBot.Application.Analysis.Indicators
 
                     foreach (var period in periods)
                     {
-                        Console.WriteLine($"[ATR] Calculating history for {symbol} - {interval} - {period}");
+                        //Console.WriteLine($"[ATR] Calculating history for {symbol} - {interval} - {period}");
 
                         var results = ComputeATRSeries(symbol, interval, ordered, period);
                         if (results.Count == 0)
@@ -77,7 +77,7 @@ namespace AionCoreBot.Application.Analysis.Indicators
                         }
 
                         await _atrRepository.SaveChangesAsync();
-                        Console.WriteLine($"[ATR] Finished {symbol} - {interval} - {period}");
+                        //Console.WriteLine($"[ATR] Finished {symbol} - {interval} - {period}");
                     }
                 }
             }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using AionCoreBot.Application.Candles.Interfaces;
+using AionCoreBot.Infrastructure.Comms.Interfaces;
 using AionCoreBot.Infrastructure.Interfaces;
 
 namespace AionCoreBot.Application.Candles.Services

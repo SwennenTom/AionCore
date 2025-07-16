@@ -91,7 +91,7 @@ namespace AionCoreBot.Application.Analysis.Indicators
             {
                 foreach (var interval in intervals)
                 {
-                    Console.WriteLine($"[RSI] Processing {symbol} - {interval}");
+                    //Console.WriteLine($"[RSI] Processing {symbol} - {interval}");
 
                     var candles = await _candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
                     var candlesList = candles.OrderBy(c => c.OpenTime).ToList();
@@ -163,7 +163,7 @@ namespace AionCoreBot.Application.Analysis.Indicators
                         }
 
                         await _rsiRepository.SaveChangesAsync();
-                        Console.WriteLine($"[RSI] Finished processing {symbol} - {interval}");
+                        //Console.WriteLine($"[RSI] Finished processing {symbol} - {interval}");
                     }
                 }
             }

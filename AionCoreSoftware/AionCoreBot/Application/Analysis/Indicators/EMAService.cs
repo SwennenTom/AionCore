@@ -87,7 +87,7 @@ namespace AionCoreBot.Application.Analysis.Indicators
 
                     foreach (var emaPeriod in emaPeriods)
                     {
-                        Console.WriteLine($"[EMA] Processing {symbol} - {interval} for period {emaPeriod}");
+                        //Console.WriteLine($"[EMA] Processing {symbol} - {interval} for period {emaPeriod}");
 
                         var lastEMA = await _emaRepository.GetLatestBySymbolIntervalPeriodAsync(symbol, interval, emaPeriod);
 
@@ -126,7 +126,7 @@ namespace AionCoreBot.Application.Analysis.Indicators
                         }
                         await _emaRepository.SaveChangesAsync();
 
-                        Console.WriteLine($"[EMA] Finished processing {symbol} - {interval} for period {emaPeriod}");
+                        //Console.WriteLine($"[EMA] Finished processing {symbol} - {interval} for period {emaPeriod}");
                     }
                 }
             }

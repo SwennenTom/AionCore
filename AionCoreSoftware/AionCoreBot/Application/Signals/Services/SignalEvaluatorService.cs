@@ -85,7 +85,7 @@ namespace AionCoreBot.Application.Signals.Services
                 .Distinct()
                 .OrderBy(t => t)
                 .ToList();
-            Console.WriteLine($"[INIT] {evaluationPoints.Count} unieke evaluatiepunten gevonden voor {symbol} ({interval})");
+            //Console.WriteLine($"[INIT] {evaluationPoints.Count} unieke evaluatiepunten gevonden voor {symbol} ({interval})");
             return await EvaluateHistoricalSignalsAsync(symbol, interval, evaluationPoints);
         }
 
