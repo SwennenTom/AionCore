@@ -24,8 +24,10 @@ namespace AionCoreBot.Domain.Models
         public TradeAction? ExitAction { get; set; }           // Bijv. Sell, Cover, Liquidate
         public DateTime? CloseTime { get; set; }               // Moment van sluiten (null zolang open)
         public decimal? ClosePrice { get; set; }               // null zolang positie niet gesloten is
-
-        public decimal? ProfitLoss { get; set; }               // Kan negatief zijn
+        public decimal? ProfitLoss { get; set; }                //Winst of verlies, null zolang open
+        public decimal StopLossPrice { get; set; }
+        public decimal TakeProfitPrice { get; set; }
+        public decimal TrailingStopPercent { get; set; }
 
         public string Strategy { get; set; } = string.Empty;   // Naam van strategie die deze trade veroorzaakte
         public string? Reason { get; set; }                    // (optioneel) Toelichting (bijv. signaalomschrijving)

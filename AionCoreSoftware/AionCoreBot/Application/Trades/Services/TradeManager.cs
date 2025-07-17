@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using AionCoreBot.Application.Risk.Interfaces;
 
 namespace AionCoreBot.Application.Trades.Services
 {
@@ -14,6 +15,7 @@ namespace AionCoreBot.Application.Trades.Services
     {
         private readonly List<Trade> _openTrades = new();
         private readonly IExchangeOrderService _exchangeOrderService;
+        private readonly IRiskManagementService _riskManagementService;
         private readonly bool _paperTradingEnabled;
 
         private int _tradeIdCounter = 0;
@@ -21,11 +23,13 @@ namespace AionCoreBot.Application.Trades.Services
 
         public TradeManager(
             IExchangeOrderService exchangeOrderService,
-            IConfiguration config)
+            IConfiguration config,
+            IRiskManagementService risk)
         {
             _exchangeOrderService = exchangeOrderService
                 ?? throw new ArgumentNullException(nameof(exchangeOrderService));
-
+            _riskManagementService = risk
+                ?? throw new ArgumentNullException(nameof(risk));
             // Switch uit appsettings.json -> true betekent paper mode
             _paperTradingEnabled = config.GetValue<bool>("Switches:PaperTrading");
         }
@@ -45,6 +49,9 @@ namespace AionCoreBot.Application.Trades.Services
                 OpenTime = DateTime.UtcNow,
                 OpenPrice = executionPrice,
                 Quantity = quantity,
+                StopLossPrice = await _riskManagementService.GetStopLossPriceAsync(decision.Symbol, executionPrice, ct),
+                TakeProfitPrice = await _riskManagementService.GetTakeProfitPriceAsync(decision.Symbol, executionPrice, ct),
+                TrailingStopPercent = await _riskManagementService.GetTrailingStopPercentAsync(decision.Symbol, ct),
                 Strategy = "4h Swing",
                 Reason = decision.Reason,
                 Exchange = _paperTradingEnabled ? "Paper" : "Binance"

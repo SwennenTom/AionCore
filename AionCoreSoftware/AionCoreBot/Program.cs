@@ -67,7 +67,6 @@ builder.Services.AddScoped<ITradeManager, TradeManager>();
 builder.Services.AddScoped<TradeDecisionService>();
 
 // === Binance.Net clients als DI services ===
-// === Binance.Net clients als DI services ===
 builder.Services.AddScoped<BinanceRestClient>();
 
 builder.Services.AddScoped(sp =>
