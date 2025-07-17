@@ -15,7 +15,7 @@ namespace AionCoreBot.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.6");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.7");
 
             modelBuilder.Entity("AionCoreBot.Domain.Models.ATRResult", b =>
                 {
@@ -376,8 +376,8 @@ namespace AionCoreBot.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<long?>("ExchangeOrderId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("ExchangeOrderId")
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("ExitAction")
                         .HasColumnType("INTEGER");
@@ -404,12 +404,21 @@ namespace AionCoreBot.Migrations
                     b.Property<string>("Reason")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("StopLossPrice")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Strategy")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TakeProfitPrice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TrailingStopPercent")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

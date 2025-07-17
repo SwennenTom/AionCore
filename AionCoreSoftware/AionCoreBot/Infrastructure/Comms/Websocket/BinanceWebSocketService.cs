@@ -1,12 +1,13 @@
 ﻿using AionCoreBot.Domain.Models;
+using AionCoreBot.Helpers;
 using AionCoreBot.Infrastructure.Data;
 using AionCoreBot.Infrastructure.Interfaces;
-using AionCoreBot.Worker.Services;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AionCoreBot.Infrastructure.Comms.Websocket
@@ -21,8 +22,10 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
 
         private int _reconnectAttempts = 0;
         private const int MaxReconnectAttempts = 1440;
-        private const int BaseDelaySeconds = 5;
         private bool _isReconnecting = false;
+
+        // Nieuw event om candles door te geven aan andere services (zoals TrailingStopWorker)
+        public event Func<string, Candle, Task>? OnFinalCandleReceived;
 
         public BinanceWebSocketService(IServiceScopeFactory scopeFactory)
         {
@@ -48,10 +51,7 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
             while (!token.IsCancellationRequested)
             {
                 var timeLeft = _timeSynchronizer.GetTimeUntilNextMinuteCandle();
-                int secondsRemaining = (int)timeLeft.TotalSeconds;
-
-                Console.Write($"\r[WS] Next 1m candle in: {secondsRemaining:00} sec   ");
-
+                Console.Write($"\r[WS] Next 1m candle in: {timeLeft.TotalSeconds:00} sec   ");
                 await Task.Delay(1000, token);
             }
         }
@@ -63,7 +63,6 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
             _client.OnDisconnected += OnDisconnected;
 
             var streams = string.Join('/', _symbols.Select(s => $"{s}@kline_1m"));
-
 
             try
             {
@@ -121,36 +120,39 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
             try
             {
                 var binanceKline = JsonSerializer.Deserialize<BinanceKlineMessage>(message);
-                var c = binanceKline?.Data?.Kline;
+                var k = binanceKline?.Data?.Kline;
+                var symbol = binanceKline?.Data?.Symbol;
 
-                Console.WriteLine($"[WS] Message {binanceKline?.Stream} IsFinal={c?.IsFinal}");
-
-                if (c?.IsFinal == true)
+                if (k?.IsFinal == true && symbol != null)
                 {
-                    using var scope = _scopeFactory.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-                    var symbol = binanceKline.Data.Symbol;
-
                     var candle = new Candle(
                         symbol,
-                        DateTimeOffset.FromUnixTimeMilliseconds(c.StartTime).UtcDateTime,
-                        DateTimeOffset.FromUnixTimeMilliseconds(c.CloseTime).UtcDateTime,
-                        c.OpenPrice,
-                        c.HighPrice,
-                        c.LowPrice,
-                        c.ClosePrice,
-                        c.Volume
+                        DateTimeOffset.FromUnixTimeMilliseconds(k.StartTime).UtcDateTime,
+                        DateTimeOffset.FromUnixTimeMilliseconds(k.CloseTime).UtcDateTime,
+                        k.OpenPrice,
+                        k.HighPrice,
+                        k.LowPrice,
+                        k.ClosePrice,
+                        k.Volume
                     )
                     {
-                        Interval = c.Interval
+                        Interval = k.Interval
                     };
+
+                    // 1. Opslaan in DB
+                    using var scope = _scopeFactory.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
                     await dbContext.AddAsync(candle);
                     await dbContext.SaveChangesAsync();
 
-                    Console.WriteLine($"[WS] Final candle stored: {symbol} @ {DateTimeOffset.FromUnixTimeMilliseconds(c.CloseTime).UtcDateTime:yyyy-MM-dd HH:mm:ss}");
+                    Console.WriteLine($"[WS] Final candle stored: {symbol} @ {candle.CloseTime:yyyy-MM-dd HH:mm:ss}");
 
+                    // 2. Notify consumers (zoals TrailingStopWorker)
+                    if (OnFinalCandleReceived != null)
+                    {
+                        await OnFinalCandleReceived.Invoke(symbol, candle);
+                    }
                 }
             }
             catch (Exception ex)
@@ -158,6 +160,5 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
                 Console.WriteLine($"[WS] Error handling message: {ex.Message}\nPayload: {message}");
             }
         }
-
     }
 }

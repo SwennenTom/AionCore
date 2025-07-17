@@ -51,7 +51,6 @@ namespace AionCoreBot.Application.Trades.Services
                 Quantity = quantity,
                 StopLossPrice = await _riskManagementService.GetStopLossPriceAsync(decision.Symbol, executionPrice, ct),
                 TakeProfitPrice = await _riskManagementService.GetTakeProfitPriceAsync(decision.Symbol, executionPrice, ct),
-                TrailingStopPercent = await _riskManagementService.GetTrailingStopPercentAsync(decision.Symbol, ct),
                 Strategy = "4h Swing",
                 Reason = decision.Reason,
                 Exchange = _paperTradingEnabled ? "Paper" : "Binance"
