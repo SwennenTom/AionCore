@@ -21,5 +21,6 @@ namespace AionCoreBot.Application.Trades.Interfaces
 
         Task<IReadOnlyList<Trade>> GetOpenTradesAsync(CancellationToken ct = default);
         Task UpdateTradeAsync(Trade trade, CancellationToken ct = default);
+        Task SyncWithExchangeAsync(CancellationToken ct = default);
     }
 }

@@ -1,13 +1,14 @@
-﻿using AionCoreBot.Domain.Models;
-using AionCoreBot.Domain.Enums;
+﻿using AionCoreBot.Application.Risk.Interfaces;
 using AionCoreBot.Application.Trades.Interfaces;
+using AionCoreBot.Domain.Enums;
+using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Comms.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using AionCoreBot.Application.Risk.Interfaces;
 
 namespace AionCoreBot.Application.Trades.Services
 {
@@ -116,5 +117,36 @@ namespace AionCoreBot.Application.Trades.Services
 
         public Task UpdateTradeAsync(Trade trade, CancellationToken ct = default)
             => Task.CompletedTask;
+
+        public async Task SyncWithExchangeAsync(CancellationToken ct = default)
+        {
+            var orders = await _exchangeOrderService.GetOrderHistoryAsync();
+
+            var orderMap = orders.ToDictionary(o => o.OrderId);
+
+            foreach (var openTrade in _openTrades.ToList())
+            {
+                if (orderMap.TryGetValue(openTrade.ExchangeOrderId, out var matchingOrder))
+                {
+                    if (matchingOrder.FilledQuantity >= openTrade.Quantity)
+                    {
+                        await CloseTradeAsync(openTrade, DetermineExitAction(openTrade), matchingOrder.FilledPrice, ct);
+                    }
+                }
+            }
+
+        }
+
+        private TradeAction DetermineExitAction(Trade trade)
+        {
+            return trade.EntryAction switch
+            {
+                TradeAction.Buy or TradeAction.LimitBuy => TradeAction.Sell,
+                TradeAction.Sell or TradeAction.LimitSell => TradeAction.Buy,
+                _ => TradeAction.Sell
+            };
+        }
+
+
     }
 }

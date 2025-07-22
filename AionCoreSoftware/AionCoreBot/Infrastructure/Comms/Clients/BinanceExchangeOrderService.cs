@@ -75,5 +75,19 @@ namespace AionCoreBot.Infrastructure.Comms.Clients
             var closeOrder = await PlaceOrderAsync(symbol, exitSide, quantity, price, ct);
             return closeOrder.FilledQuantity > 0;
         }
+
+        public async Task<IEnumerable<OrderResult>> GetOrderHistoryAsync()
+        {
+            var result = await _client.SpotApi.Trading.GetOrdersAsync();
+
+            if (!result.Success)
+                throw new Exception($"Failed to get order history: {result.Error?.Message}");
+
+            return result.Data.Select(o => new OrderResult(
+                o.Id.ToString(),
+                o.AverageFillPrice ?? o.Price ?? 0m,
+                o.QuantityFilled
+            ));
+        }
     }
 }

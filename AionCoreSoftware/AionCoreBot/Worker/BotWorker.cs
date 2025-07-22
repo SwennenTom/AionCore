@@ -19,6 +19,7 @@ using AionCoreBot.Application.Candles.Services;
 using AionCoreBot.Application.Signals.Services;
 using AionCoreBot.Application.Strategy.Interfaces;
 using AionCoreBot.Application.Strategy.Services;
+using AionCoreBot.Application.Trades.Interfaces;
 using AionCoreBot.Infrastructure.Comms.Clients;
 using AionCoreBot.Infrastructure.Data;
 using AionCoreBot.Infrastructure.Repositories;
@@ -30,12 +31,14 @@ public class BotWorker
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
     private readonly IAccountSyncService _accountSyncService;
+    private readonly ITradeManager _tradeManager;
 
-    public BotWorker(IServiceProvider serviceProvider, IConfiguration configuration, IAccountSyncService accountSyncService)
+    public BotWorker(IServiceProvider serviceProvider, IConfiguration configuration, IAccountSyncService accountSyncService, ITradeManager tradeManager)
     {
         _serviceProvider = serviceProvider;
         _configuration = configuration;
         _accountSyncService = accountSyncService;
+        _tradeManager = tradeManager;
     }
 
     public async Task RunAsync(CancellationToken stoppingToken)
@@ -107,6 +110,11 @@ public class BotWorker
 
                     Console.WriteLine($"[STRATEGY] Uitgevoerd om {currentHour:HH:mm} UTC");
                 }
+
+                //TradeSync
+                await _tradeManager.SyncWithExchangeAsync(stoppingToken);
+
+
             }
             catch (Exception ex)
             {

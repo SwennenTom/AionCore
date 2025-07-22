@@ -22,7 +22,12 @@ namespace AionCoreBot.Infrastructure.Comms.Interfaces
             decimal quantity,
             decimal? price,
             CancellationToken ct = default);
+
+        Task<IEnumerable<OrderResult>> GetOrderHistoryAsync();
+
     }
 
     public record OrderResult(string OrderId, decimal FilledPrice, decimal FilledQuantity);
+
+
 }

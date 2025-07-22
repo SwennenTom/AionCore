@@ -11,6 +11,7 @@ namespace AionCoreBot.Domain.Enums
         Pending,
         Filled,
         Cancelled,
-        Rejected
+        Rejected,
+        Closed
     }
 }
