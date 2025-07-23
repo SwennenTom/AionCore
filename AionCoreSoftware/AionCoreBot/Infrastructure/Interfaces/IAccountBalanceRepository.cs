@@ -13,5 +13,6 @@ namespace AionCoreBot.Infrastructure.Interfaces
         Task<AccountBalance?> GetByAssetAsync(string asset);
         Task UpsertAsync(AccountBalance balance);
         Task BulkUpsertAsync(IEnumerable<AccountBalance> balances);
+        Task ClearAllAsync();
     }
 }

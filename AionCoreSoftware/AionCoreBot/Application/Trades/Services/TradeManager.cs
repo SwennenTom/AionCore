@@ -59,12 +59,10 @@ namespace AionCoreBot.Application.Trades.Services
 
             if (_paperTradingEnabled)
             {
-                // ✅ Paper trade → enkel in geheugen opslaan
                 _openTrades.Add(trade);
             }
             else
             {
-                // ✅ Echte orderuitvoering via Binance
                 var orderResult = await _exchangeOrderService.PlaceOrderAsync(
                     trade.Symbol,
                     trade.EntryAction,
@@ -118,25 +116,6 @@ namespace AionCoreBot.Application.Trades.Services
         public Task UpdateTradeAsync(Trade trade, CancellationToken ct = default)
             => Task.CompletedTask;
 
-        public async Task SyncWithExchangeAsync(CancellationToken ct = default)
-        {
-            var orders = await _exchangeOrderService.GetOrderHistoryAsync();
-
-            var orderMap = orders.ToDictionary(o => o.OrderId);
-
-            foreach (var openTrade in _openTrades.ToList())
-            {
-                if (orderMap.TryGetValue(openTrade.ExchangeOrderId, out var matchingOrder))
-                {
-                    if (matchingOrder.FilledQuantity >= openTrade.Quantity)
-                    {
-                        await CloseTradeAsync(openTrade, DetermineExitAction(openTrade), matchingOrder.FilledPrice, ct);
-                    }
-                }
-            }
-
-        }
-
         private TradeAction DetermineExitAction(Trade trade)
         {
             return trade.EntryAction switch
@@ -147,6 +126,48 @@ namespace AionCoreBot.Application.Trades.Services
             };
         }
 
+        public async Task SyncWithExchangeAsync(CancellationToken ct = default)
+        {
+            // ✅ 1. Verzamel unieke symbolen van open trades
+            var symbols = _openTrades
+                .Select(t => t.Symbol)
+                .Distinct()
+                .ToList();
+
+            foreach (var symbol in symbols)
+            {
+                // ✅ 2. Haal orderhistoriek per symbool op via Binance
+                var orders = await _exchangeOrderService.GetOrderHistoryAsync(symbol, ct);
+
+                // ✅ 3. Bouw een lookup map op OrderId
+                var orderMap = orders.ToDictionary(o => o.OrderId);
+
+                // ✅ 4. Check alleen trades voor dit symbool
+                var tradesForSymbol = _openTrades
+                    .Where(t => t.Symbol == symbol)
+                    .ToList();
+
+                foreach (var openTrade in tradesForSymbol)
+                {
+                    if (openTrade.ExchangeOrderId == null)
+                        continue; // skip trades zonder exchange-id (bv. paper)
+
+                    if (orderMap.TryGetValue(openTrade.ExchangeOrderId, out var matchingOrder))
+                    {
+                        // ✅ Als filledQuantity >= geaggregeerde hoeveelheid → trade sluiten
+                        if (matchingOrder.FilledQuantity >= openTrade.Quantity)
+                        {
+                            var exitAction = DetermineExitAction(openTrade);
+
+                            // ❗ matchingOrder.FilledPrice is al veilig nullable -> fallback naar 0m
+                            var fillPrice = (decimal?)matchingOrder.FilledPrice ?? 0m;
+
+                            await CloseTradeAsync(openTrade, exitAction, fillPrice, ct);
+                        }
+                    }
+                }
+            }
+        }
 
     }
 }

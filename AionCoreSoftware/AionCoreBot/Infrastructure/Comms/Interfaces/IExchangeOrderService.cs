@@ -22,8 +22,8 @@ namespace AionCoreBot.Infrastructure.Comms.Interfaces
             decimal quantity,
             decimal? price,
             CancellationToken ct = default);
+        Task<IEnumerable<OrderResult>> GetOrderHistoryAsync(string symbol, CancellationToken ct = default);
 
-        Task<IEnumerable<OrderResult>> GetOrderHistoryAsync();
 
     }
 

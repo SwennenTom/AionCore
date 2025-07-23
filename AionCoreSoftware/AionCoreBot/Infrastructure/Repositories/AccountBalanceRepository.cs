@@ -51,5 +51,11 @@ namespace AionCoreBot.Infrastructure.Repositories
                 await UpsertAsync(balance);
             }
         }
+
+        public async Task ClearAllAsync()
+        {
+            _context.AccountBalances.RemoveRange(_context.AccountBalances);
+            await _context.SaveChangesAsync();
+        }
     }
 }
