@@ -65,16 +65,13 @@ namespace AionCoreBot.Application.Risk.Services
         {
             throw new NotImplementedException();
         }
-
+        // Hier kun je later bv. max exposure per symbool toevoegen
         public bool IsTradeWithinRiskLimits(string symbol, TradeAction action, decimal qty)
-        {
-            // Hier kun je later bv. max exposure per symbool toevoegen
+        {            
             return true;
         }
 
-        /// <summary>
-        /// Placeholder: later kun je hier SL/TP dynamic aanpassen na uitvoering.
-        /// </summary>
+        // Placeholder: later kun je hier SL/TP dynamic aanpassen na uitvoering. Mogelijk niet nodig wegens trailing stops.        
         public Task UpdateRiskParametersAsync(int tradeId, CancellationToken ct = default)
             => Task.CompletedTask;
 
