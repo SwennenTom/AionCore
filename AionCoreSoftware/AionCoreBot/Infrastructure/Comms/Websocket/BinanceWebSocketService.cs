@@ -51,7 +51,7 @@ namespace AionCoreBot.Infrastructure.Comms.Websocket
             while (!token.IsCancellationRequested)
             {
                 var timeLeft = _timeSynchronizer.GetTimeUntilNextMinuteCandle();
-                Console.Write($"\r[WS] Next 1m candle in: {timeLeft.TotalSeconds:00} sec   ");
+                //Console.Write($"\r[WS] Next 1m candle in: {timeLeft.TotalSeconds:00} sec   ");
                 await Task.Delay(1000, token);
             }
         }

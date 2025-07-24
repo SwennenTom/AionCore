@@ -37,7 +37,7 @@ namespace AionCoreBot.Application.Signals.Services
                     //Console.WriteLine($"[INIT] Evaluating historical signals for {symbol} ({interval})...");
                     var candles = await _candleRepository.GetBySymbolAndIntervalAsync(symbol, interval);
                     await _signalEvaluator.EvaluateAllAsync(symbol, interval, candles);
-                    await _candleRepository.SaveChangesAsync();
+                    //await _candleRepository.SaveChangesAsync();
                 }
             }
         }

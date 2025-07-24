@@ -1,24 +1,31 @@
 ﻿using AionCoreBot.Application.Maintenance;
 using AionCoreBot.Domain.Interfaces;
+using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
 
 public class DataCleanupService : IDataCleanupService
 {
-    private readonly IEnumerable<IIndicatorRepository<IIndicatorResult>> _indicatorRepositories;
     private readonly ICandleRepository _candleRepository;
     private readonly ISignalEvaluationRepository _signalRepo;
     private readonly IAccountBalanceRepository _accountBalanceRepository;
+    private readonly IIndicatorRepository<EMAResult> _emaRepository;
+    private readonly IIndicatorRepository<ATRResult> _atrRepository;
+    private readonly IIndicatorRepository<RSIResult> _rsiRepository;
 
     public DataCleanupService(
         ICandleRepository candleRepository,
         ISignalEvaluationRepository signalRepo,
         IAccountBalanceRepository accountBalanceRepository,
-        IEnumerable<IIndicatorRepository<IIndicatorResult>> indicatorRepositories)
+        IIndicatorRepository<EMAResult> emaRepository,
+        IIndicatorRepository<ATRResult> atrRepository,
+        IIndicatorRepository<RSIResult> rsiRepository)
     {
         _candleRepository = candleRepository;
         _signalRepo = signalRepo;
         _accountBalanceRepository = accountBalanceRepository;
-        _indicatorRepositories = indicatorRepositories;
+        _emaRepository = emaRepository;
+        _atrRepository = atrRepository;
+        _rsiRepository = rsiRepository;
     }
 
     public async Task ClearAllDataAsync(CancellationToken cancellationToken = default)
@@ -27,9 +34,9 @@ public class DataCleanupService : IDataCleanupService
         await _signalRepo.ClearAllAsync();
         await _accountBalanceRepository.ClearAllAsync();
 
-        foreach (var repo in _indicatorRepositories)
-        {
-            await repo.ClearAllAsync();
-        }
+        await _emaRepository.ClearAllAsync();
+        await _atrRepository.ClearAllAsync();
+        await _rsiRepository.ClearAllAsync();
     }
 }
+
