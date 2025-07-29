@@ -56,7 +56,6 @@ public class BotWorker
         Console.WriteLine("[BOOT] Fetching Account Data");
         await _accountSyncService.InitializeAsync();
 
-
         Console.WriteLine("[BOOT] Downloading historical candles...");
         using (var scope = _serviceProvider.CreateScope())
         {
@@ -86,35 +85,33 @@ public class BotWorker
 
     public async Task StartLiveLoopAsync(CancellationToken stoppingToken)
     {
-        DateTime lastStrategyExecutionHour = DateTime.MinValue;
-
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                // ✅ 1. Bereken hoeveel tijd tot volgende 4h-candle sluit
+                // ✅ 1. Bereken delay tot volgende 4h candle sluit
                 var delay = GetDelayUntilNext4hCandle();
                 var wakeTime = DateTime.UtcNow + delay;
 
                 Console.WriteLine($"[SLEEP] Slaap {delay.TotalMinutes:F0} minuten, wakker om {wakeTime:yyyy-MM-dd HH:mm} UTC");
 
-                await Task.Delay(delay, stoppingToken);
+                if (delay.TotalMilliseconds > 0)
+                    await Task.Delay(delay, stoppingToken);
 
-                // ✅ 2. Zodra nieuwe 4h-candle sluit → alles uitvoeren
                 Console.WriteLine($"[CANDLE] Nieuwe 4h-candle gesloten om {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC");
 
                 using var scope = _serviceProvider.CreateScope();
 
-                // ✅ 3. Candles aggregeren (voor 4h)
+                // ✅ 2. Candles aggregeren (4h)
                 var aggregator = scope.ServiceProvider.GetRequiredService<CandleAggregator>();
                 await aggregator.AggregateAsync();
 
-                // ✅ 4. Strategie uitvoeren
+                // ✅ 3. Strategie uitvoeren
                 var strategyService = scope.ServiceProvider.GetRequiredService<IStrategyService>();
                 await strategyService.ExecuteStrategyAsync(stoppingToken);
                 Console.WriteLine($"[STRATEGY] Uitgevoerd na 4h-sluiting ({DateTime.UtcNow:HH:mm} UTC)");
 
-                // ✅ 5. Open trades syncen met Binance
+                // ✅ 4. Open trades syncen met Binance
                 await _tradeManager.SyncWithExchangeAsync(stoppingToken);
                 Console.WriteLine("[TRADESYNC] Open trades gesynchroniseerd met Binance");
             }
@@ -124,30 +121,25 @@ public class BotWorker
             }
         }
     }
+
     private TimeSpan GetDelayUntilNext4hCandle()
     {
         var now = DateTime.UtcNow;
 
-        // 4h blokken: 0,4,8,12,16,20
-        var nextBlockHour = ((now.Hour / 4) + 1) * 4;
-        if (nextBlockHour >= 24)
-            nextBlockHour -= 24;
+        // ✅ 4h blokken zijn 0, 4, 8, 12, 16, 20
+        var currentBlockStartHour = (now.Hour / 4) * 4;
 
-        var nextBoundary = new DateTime(
-            now.Year,
-            now.Month,
-            now.Day,
-            nextBlockHour,
-            0,
-            0,
-            DateTimeKind.Utc
-        );
+        // Starttijd van dit blok
+        var currentBlockStart = new DateTime(now.Year, now.Month, now.Day, currentBlockStartHour, 0, 0, DateTimeKind.Utc);
 
-        if (nextBoundary <= now)
-            nextBoundary = nextBoundary.AddHours(4);
+        // Volgend blok is altijd +4h
+        var nextBlock = currentBlockStart.AddHours(4);
 
-        return nextBoundary - now;
+        // Als nextBlock al in het verleden ligt, nog een extra +4h
+        if (nextBlock <= now)
+            nextBlock = nextBlock.AddHours(4);
+
+        return nextBlock - now;
     }
-
-
 }
+
