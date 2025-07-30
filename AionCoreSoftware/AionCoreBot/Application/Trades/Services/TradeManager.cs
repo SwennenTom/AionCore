@@ -106,7 +106,7 @@ namespace AionCoreBot.Application.Trades.Services
                 );
             }
 
-            _openTrades.Remove(trade);
+            //_openTrades.Remove(trade);
             return trade;
         }
 

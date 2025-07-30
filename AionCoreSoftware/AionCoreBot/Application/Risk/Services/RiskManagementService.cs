@@ -15,20 +15,29 @@ namespace AionCoreBot.Application.Risk.Services
         private readonly decimal _maxPortfolioRiskPerTrade;
         private readonly decimal _stopLossPct;
         private readonly decimal _takeProfitRatio;
+        private readonly bool _paperTradingEnabled;
 
         public RiskManagementService(
-            IBalanceProvider balanceProvider,
-            IConfiguration config)
+    IBalanceProvider balanceProvider,
+    IConfiguration config)
         {
             _balanceProvider = balanceProvider ?? throw new ArgumentNullException(nameof(balanceProvider));
 
             _maxPortfolioRiskPerTrade = config.GetValue<decimal>("RiskManagement:MaxPortfolioRiskPerTrade", 0.02m);
             _stopLossPct = config.GetValue<decimal>("RiskManagement:StopLossPercentage", 0.02m);
             _takeProfitRatio = config.GetValue<decimal>("RiskManagement:TakeProfitRatio", 2.0m);
+            _paperTradingEnabled = config.GetValue<bool>("Switches:PaperTrading", true); // <-- voeg deze toe
         }
+
 
         public async Task<decimal> CalculateMaxRiskAmountAsync(string symbol, decimal currentPos, CancellationToken ct = default)
         {
+            if (_paperTradingEnabled)
+            {
+                // In paper trading hebben we geen echte balans, dus mocken we een bedrag
+                return 1000m; // mock bedrag voor paper trading
+            }
+
             var balances = await _balanceProvider.GetBalancesAsync(ct);
 
             var quoteAsset = GetQuoteAsset(symbol);

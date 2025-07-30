@@ -14,25 +14,25 @@ namespace AionCoreBot.Application.Account.Services
     public class BalanceProvider : IBalanceProvider
     {
         private readonly BinanceRestClient _binance;
-        private readonly bool _paper;
+        //private readonly bool _paper;
 
         public BalanceProvider(BinanceRestClient binanceClient, IConfiguration cfg)
         {
             _binance = binanceClient ?? throw new ArgumentNullException(nameof(binanceClient));
-            _paper = cfg.GetValue<bool>("Switches:PaperTrading");
+            //_paper = cfg.GetValue<bool>("Switches:PaperTrading");
         }
 
         /* ---------- balances ---------- */
         public async Task<Dictionary<string, decimal>> GetBalancesAsync(CancellationToken ct = default)
         {
-            if (_paper)
-            {
-                // Alleen mock-budget in EUR
-                return new Dictionary<string, decimal>
-                {
-                    { "EUR", 10_000m }
-                };
-            }
+            //if (_paper)
+            //{
+            //    // Alleen mock-budget in EUR
+            //    return new Dictionary<string, decimal>
+            //    {
+            //        { "EUR", 10_000m }
+            //    };
+            //}
 
             var accountResult = await _binance.SpotApi.Account.GetAccountInfoAsync(ct: ct);
             if (!accountResult.Success || accountResult.Data == null)
@@ -50,8 +50,8 @@ namespace AionCoreBot.Application.Account.Services
         /* ---------- huidige positie ---------- */
         public async Task<decimal> GetPositionSizeAsync(string symbol, CancellationToken ct = default)
         {
-            if (_paper)
-                return 0m; // geen open posities in paper-mode
+            //if (_paper)
+            //    return 0m; // geen open posities in paper-mode
 
             var balances = await GetBalancesAsync(ct);
 
