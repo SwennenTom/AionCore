@@ -9,5 +9,6 @@ namespace AionCoreBot.Application.Maintenance
     public interface IDataCleanupService
     {
         Task ClearAllDataAsync(CancellationToken cancellationToken = default);
+        Task ClearOldLogging(CancellationToken cancellationToken = default);
     }
 }

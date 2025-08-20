@@ -5,6 +5,7 @@ using AionCoreBot.Application.Analysis.Indicators;
 using AionCoreBot.Application.Analysis.Interfaces;
 using AionCoreBot.Application.Candles.Interfaces;
 using AionCoreBot.Application.Candles.Services;
+using AionCoreBot.Application.Logging;
 using AionCoreBot.Application.Maintenance;
 using AionCoreBot.Application.Risk.Interfaces;
 using AionCoreBot.Application.Risk.Services;
@@ -102,6 +103,7 @@ builder.Services.AddScoped<IIndicatorRepository<EMAResult>, EMARepository>();
 builder.Services.AddScoped<IIndicatorRepository<RSIResult>, RSIRepository>();
 builder.Services.AddScoped<IIndicatorRepository<ATRResult>, ATRRepository>();
 builder.Services.AddScoped<ISignalEvaluationRepository, SignalEvaluationRepository>();
+builder.Services.AddScoped<ITradeRepository, TradeRepository>();
 
 // === Indicator services ===
 builder.Services.AddScoped<IIndicatorService<ATRResult>, ATRService>();
@@ -115,6 +117,9 @@ builder.Services.Scan(scan => scan
     .AddClasses(c => c.AssignableTo<IAnalyzer>())
     .AsImplementedInterfaces()
     .WithScopedLifetime());
+
+// === Log service ===
+builder.Services.AddScoped<ILogService, LogService>();
 
 var host = builder.Build();
 host.Run();

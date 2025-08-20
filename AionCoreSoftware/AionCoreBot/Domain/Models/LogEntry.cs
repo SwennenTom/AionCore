@@ -14,7 +14,7 @@ namespace AionCoreBot.Domain.Models
         public DateTime Timestamp { get; set; } = DateTime.UtcNow.AddTicks(-(DateTime.UtcNow.Ticks % TimeSpan.TicksPerMillisecond));
         public LogClass LogLevel { get; set; } = LogClass.Info;
         public string SourceComponent { get; set; } // e.g., "AionCoreBot.Domain.Models.LogEntry"
-        public string ExceptionDetails { get; set; } // Optional, for error logs
+        public string? ExceptionDetails { get; set; } // Optional, for error logs
         private LogEntry() { } // EF Core requires a parameterless constructor
         public LogEntry(string message, LogClass logLevel, string source, string exceptionDetails = null)
         {

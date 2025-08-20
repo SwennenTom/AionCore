@@ -1,16 +1,22 @@
 ﻿using AionCoreBot.Domain.Models;
 using AionCoreBot.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AionCoreBot.Infrastructure.Data;
 
 namespace AionCoreBot.Application.Logging
 {
     public class LogService : ILogService
     {
-        // Simpele in-memory opslag (vervang dit met DB-context indien gewenst)
-        private readonly List<LogEntry> _logEntries = new();
+        private readonly ApplicationDbContext _dbContext;
+
+        public LogService(ApplicationDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
 
         public async Task LogAsync(string message, LogClass logLevel = LogClass.Info, string sourceComponent = "", string? exceptionDetails = null)
         {
@@ -18,50 +24,56 @@ namespace AionCoreBot.Application.Logging
             await SaveAsync(entry);
         }
 
-        public Task SaveAsync(LogEntry logEntry)
+        public async Task SaveAsync(LogEntry logEntry)
         {
-            _logEntries.Add(logEntry);
-            return Task.CompletedTask;
+            await _dbContext.Logs.AddAsync(logEntry);
+            await _dbContext.SaveChangesAsync();
         }
 
-        public Task<IEnumerable<LogEntry>> GetLogsAsync(DateTime? from = null, DateTime? to = null, LogClass? logLevel = null, string? sourceComponent = "", int? pageNumber = null, int? pageSize = null)
+        public async Task<IEnumerable<LogEntry>> GetLogsAsync(DateTime? from = null, DateTime? to = null, LogClass? logLevel = null, string? sourceComponent = "", int? pageNumber = null, int? pageSize = null)
         {
-            IEnumerable<LogEntry> result = _logEntries;
+            IQueryable<LogEntry> query = _dbContext.Logs.AsQueryable();
 
             if (from.HasValue)
-                result = result.Where(l => l.Timestamp >= from.Value);
+                query = query.Where(l => l.Timestamp >= from.Value);
             if (to.HasValue)
-                result = result.Where(l => l.Timestamp <= to.Value);
+                query = query.Where(l => l.Timestamp <= to.Value);
             if (logLevel.HasValue)
-                result = result.Where(l => l.LogLevel == logLevel.Value);
+                query = query.Where(l => l.LogLevel == logLevel.Value);
             if (!string.IsNullOrWhiteSpace(sourceComponent))
-                result = result.Where(l => l.SourceComponent == sourceComponent);
+                query = query.Where(l => l.SourceComponent == sourceComponent);
 
             if (pageNumber.HasValue && pageSize.HasValue)
             {
                 int skip = (pageNumber.Value - 1) * pageSize.Value;
-                result = result.Skip(skip).Take(pageSize.Value);
+                query = query.Skip(skip).Take(pageSize.Value);
             }
 
-            return Task.FromResult(result);
+            return await query.ToListAsync();
         }
 
-        public Task<IEnumerable<LogEntry>> GetRecentLogsAsync(int count = 100, LogClass? logLevel = null, string? sourceComponent = "")
+        public async Task<IEnumerable<LogEntry>> GetRecentLogsAsync(int count = 100, LogClass? logLevel = null, string? sourceComponent = "")
         {
-            IEnumerable<LogEntry> result = _logEntries.OrderByDescending(l => l.Timestamp);
+            IQueryable<LogEntry> query = _dbContext.Logs
+                .OrderByDescending(l => l.Timestamp);
 
             if (logLevel.HasValue)
-                result = result.Where(l => l.LogLevel == logLevel.Value);
+                query = query.Where(l => l.LogLevel == logLevel.Value);
             if (!string.IsNullOrWhiteSpace(sourceComponent))
-                result = result.Where(l => l.SourceComponent == sourceComponent);
+                query = query.Where(l => l.SourceComponent == sourceComponent);
 
-            return Task.FromResult(result.Take(count));
+            return await query.Take(count).ToListAsync();
         }
 
-        public Task DeleteOldLogsAsync(DateTime before)
+        public async Task DeleteOldLogsAsync(CancellationToken token)
         {
-            _logEntries.RemoveAll(l => l.Timestamp < before);
-            return Task.CompletedTask;
+            if(token.IsCancellationRequested)
+            {
+                var before = DateTime.UtcNow.AddMonths(-6);
+                var oldLogs = _dbContext.Logs.Where(l => l.Timestamp < before);
+                _dbContext.Logs.RemoveRange(oldLogs);
+                await _dbContext.SaveChangesAsync();
+            }            
         }
     }
 }

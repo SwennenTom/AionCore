@@ -1,4 +1,5 @@
 ﻿using AionCoreBot.Application.Maintenance;
+using AionCoreBot.Application.Logging;
 using AionCoreBot.Domain.Interfaces;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Interfaces;
@@ -11,6 +12,7 @@ public class DataCleanupService : IDataCleanupService
     private readonly IIndicatorRepository<EMAResult> _emaRepository;
     private readonly IIndicatorRepository<ATRResult> _atrRepository;
     private readonly IIndicatorRepository<RSIResult> _rsiRepository;
+    private readonly ILogService _logService;
 
     public DataCleanupService(
         ICandleRepository candleRepository,
@@ -18,7 +20,8 @@ public class DataCleanupService : IDataCleanupService
         IAccountBalanceRepository accountBalanceRepository,
         IIndicatorRepository<EMAResult> emaRepository,
         IIndicatorRepository<ATRResult> atrRepository,
-        IIndicatorRepository<RSIResult> rsiRepository)
+        IIndicatorRepository<RSIResult> rsiRepository,
+        ILogService logService)
     {
         _candleRepository = candleRepository;
         _signalRepo = signalRepo;
@@ -26,6 +29,7 @@ public class DataCleanupService : IDataCleanupService
         _emaRepository = emaRepository;
         _atrRepository = atrRepository;
         _rsiRepository = rsiRepository;
+        _logService = logService;
     }
 
     public async Task ClearAllDataAsync(CancellationToken cancellationToken = default)
@@ -37,6 +41,11 @@ public class DataCleanupService : IDataCleanupService
         await _emaRepository.ClearAllAsync();
         await _atrRepository.ClearAllAsync();
         await _rsiRepository.ClearAllAsync();
+    }
+
+    public async Task ClearOldLogging(CancellationToken cancellationToken = default)
+    {
+        await _logService.DeleteOldLogsAsync(cancellationToken);
     }
 }
 

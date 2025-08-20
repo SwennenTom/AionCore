@@ -3,6 +3,7 @@ using AionCoreBot.Application.Trades.Interfaces;
 using AionCoreBot.Domain.Enums;
 using AionCoreBot.Domain.Models;
 using AionCoreBot.Infrastructure.Comms.Interfaces;
+using AionCoreBot.Infrastructure.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections;
@@ -17,6 +18,7 @@ namespace AionCoreBot.Application.Trades.Services
         private readonly List<Trade> _openTrades = new();
         private readonly IExchangeOrderService _exchangeOrderService;
         private readonly IRiskManagementService _riskManagementService;
+        private readonly ITradeRepository _tradeRepository;
         private readonly bool _paperTradingEnabled;
 
         private int _tradeIdCounter = 0;
@@ -25,13 +27,14 @@ namespace AionCoreBot.Application.Trades.Services
         public TradeManager(
             IExchangeOrderService exchangeOrderService,
             IConfiguration config,
-            IRiskManagementService risk)
+            IRiskManagementService risk, ITradeRepository tradeRepository)
         {
             _exchangeOrderService = exchangeOrderService
                 ?? throw new ArgumentNullException(nameof(exchangeOrderService));
             _riskManagementService = risk
                 ?? throw new ArgumentNullException(nameof(risk));
-            // Switch uit appsettings.json -> true betekent paper mode
+            _tradeRepository = tradeRepository
+                ?? throw new ArgumentNullException(nameof(tradeRepository));
             _paperTradingEnabled = config.GetValue<bool>("Switches:PaperTrading");
         }
 
@@ -60,6 +63,7 @@ namespace AionCoreBot.Application.Trades.Services
             if (_paperTradingEnabled)
             {
                 _openTrades.Add(trade);
+                await _tradeRepository.AddAsync(trade);
             }
             else
             {
@@ -74,6 +78,7 @@ namespace AionCoreBot.Application.Trades.Services
                 // eventueel order-id loggen
                 trade.ExchangeOrderId = orderResult.OrderId;
                 _openTrades.Add(trade);
+                await _tradeRepository.AddAsync(trade);
             }
 
             return trade;
@@ -106,7 +111,8 @@ namespace AionCoreBot.Application.Trades.Services
                 );
             }
 
-            //_openTrades.Remove(trade);
+            _openTrades.Remove(trade);
+            await _tradeRepository.Update(trade);
             return trade;
         }
 

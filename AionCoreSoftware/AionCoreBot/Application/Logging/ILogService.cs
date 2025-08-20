@@ -14,6 +14,6 @@ namespace AionCoreBot.Application.Logging
         Task SaveAsync(LogEntry logEntry);
         Task<IEnumerable<LogEntry>> GetLogsAsync(DateTime? from = null, DateTime? to = null, LogClass? logLevel = null, string? sourceComponent = "", int? pageNumber = null, int? pageSize = null);
         Task<IEnumerable<LogEntry>> GetRecentLogsAsync(int count = 100, LogClass? logLevel = null, string? sourceComponent = "");
-        Task DeleteOldLogsAsync(DateTime before);
+        Task DeleteOldLogsAsync(CancellationToken token);
     }
 }

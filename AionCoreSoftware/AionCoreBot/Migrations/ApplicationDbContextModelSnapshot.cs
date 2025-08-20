@@ -201,7 +201,6 @@ namespace AionCoreBot.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ExceptionDetails")
-                        .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 

@@ -13,8 +13,8 @@ namespace AionCoreBot.Infrastructure.Interfaces
         Task<IEnumerable<Trade>> GetAllAsync();
         Task<IEnumerable<Trade>> GetOpenTradesAsync();
         Task AddAsync(Trade entity);
-        void Update(Trade entity);
-        void Delete(Trade entity);
+        Task Update(Trade entity);
+        Task Delete(Trade entity);
         Task SaveChangesAsync();
     }
 }

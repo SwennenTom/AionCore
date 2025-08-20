@@ -37,16 +37,19 @@ namespace AionCoreBot.Infrastructure.Repositories
         public async Task AddAsync(Trade entity)
         {
             await _context.Trades.AddAsync(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void Update(Trade entity)
+        public Task Update(Trade entity)
         {
             _context.Trades.Update(entity);
+            return Task.CompletedTask;
         }
 
-        public void Delete(Trade entity)
+        public Task Delete(Trade entity)
         {
             _context.Trades.Remove(entity);
+            return Task.CompletedTask;
         }
 
         public async Task SaveChangesAsync()
